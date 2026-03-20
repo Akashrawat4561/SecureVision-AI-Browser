@@ -1,0 +1,16 @@
+# Frontend-specific .gitignore
+# (Root .gitignore already covers most of these)
+
+node_modules/
+dist/
+dist-ssr/
+*.local
+*.tsbuildinfo
+.vite/
+.env
+.env.*
+!.env.example
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*

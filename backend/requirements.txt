@@ -1,0 +1,17 @@
+fastapi
+uvicorn[standard]
+python-multipart
+pandas
+scikit-learn
+transformers
+onnxruntime
+websockets
+opencv-python-headless
+requests
+Pillow
+onnx
+torch
+redis
+passlib[bcrypt]
+python-jose[cryptography]
+python-dotenv

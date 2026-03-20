@@ -1,0 +1,55 @@
+services:
+  # --- FEATURE 10: INTELLIGENCE SHARING (Redis Message Broker) ---
+  redis:
+    image: redis:alpine
+    container_name: securevision-redis
+    ports:
+      - "6379:6379"
+    networks:
+      - securevision-net
+    restart: unless-stopped
+
+  # --- AI INFERENCE ENGINE (Backend APIs / WebSocket) ---
+  # Covers Feature 1-4, 5, 6, 7, 11, 12
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: securevision-backend
+    ports:
+      - "8000:8000"
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - DEEPFAKE_MODEL_PATH=/app/models/xception_deepfake.onnx
+      - ENV=production
+    depends_on:
+      - redis
+    networks:
+      - securevision-net
+    restart: unless-stopped
+
+  # --- WEB DASHBOARD (The Central SOC UI) ---
+  # Covers Feature 5, 8, 9, 10
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: securevision-frontend
+    ports:
+      - "8080:80"
+    environment:
+      - VITE_WS_BACKEND=ws://localhost:8000/ws
+      - VITE_API_BACKEND=http://localhost:8000/api
+    depends_on:
+      - backend
+    networks:
+      - securevision-net
+    restart: unless-stopped
+
+networks:
+  securevision-net:
+    driver: bridge
+
+volumes:
+  model_cache:
