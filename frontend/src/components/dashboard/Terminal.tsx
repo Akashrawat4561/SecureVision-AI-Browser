@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Terminal as TerminalIcon, ChevronRight, Maximize2, Minimize2, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useWebSocket } from '../context/WebSocketContext';
+import { useWebSocket } from '../../context/WebSocketContext';
 
 export default function Terminal() {
     const [isOpen, setIsOpen] = useState(false);
@@ -67,7 +67,7 @@ export default function Terminal() {
                             {logs.length === 0 && (
                                 <div className="text-slate-700 animate-pulse">Initializing neural stream...</div>
                             )}
-                            {logs.map((log, i) => (
+                            {logs.map((log: any, i: number) => (
                                 <div key={i} className="flex space-x-3 group">
                                     <span className="text-slate-600 shrink-0">[{log.timestamp}]</span>
                                     <span className={`shrink-0 font-bold ${

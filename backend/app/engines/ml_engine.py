@@ -4,8 +4,9 @@ from sklearn.ensemble import IsolationForest
 import pickle
 import os
 
-MODEL_PATH = "backend/models/anomaly_model.pkl"
-DATA_PATH = "backend/data/network_dataset.csv"
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+MODEL_PATH = os.path.join(BASE_DIR, "models", "anomaly_model.pkl")
+DATA_PATH = os.path.join(BASE_DIR, "data", "network_dataset.csv")
 
 class AnomalyEngine:
     def __init__(self):
@@ -66,18 +67,20 @@ class AnomalyEngine:
         
         # Convert to more user-friendly format
         results = []
+        # Convert to more user-friendly format
+        results = []
         for i in range(len(df)):
-            is_anomaly = preds[i] == -1
+            is_anomaly = bool(preds[i] == -1)
             # Normalize score to 0-1 (higher score = more anomalous for our UI)
             # IsolationForest decision_function returns negative values for anomalies
             # and positive for normal points.
-            anomaly_prob = 1.0 - ((scores[i] + 0.5) / 1.0) # Crude normalization
-            anomaly_prob = max(0, min(1, anomaly_prob))
+            anomaly_prob = 1.0 - ((float(scores[i]) + 0.5) / 1.0) # Crude normalization
+            anomaly_prob = max(0.0, min(1.0, float(anomaly_prob)))
             
             results.append({
                 "index": i,
-                "is_anomaly": bool(is_anomaly),
-                "anomaly_score": round(anomaly_prob, 3),
+                "is_anomaly": is_anomaly,
+                "anomaly_score": float(int(anomaly_prob * 1000) / 1000.0),
                 "severity": "HIGH" if anomaly_prob > 0.7 else ("MEDIUM" if anomaly_prob > 0.4 else "LOW")
             })
         return results, None

@@ -1,6 +1,7 @@
 import { Routes, Route } from 'react-router-dom'
-import Layout from './components/Layout'
+import Layout from './layouts/Layout'
 import Dashboard from './pages/Dashboard'
+import ThreatMap from './pages/ThreatMap'
 import Phishing from './pages/Phishing'
 import Anomaly from './pages/Anomaly'
 import Deepfake from './pages/Deepfake'
@@ -14,7 +15,7 @@ import Predictive from './pages/Predictive'
 
 import Landing from './pages/Landing'
 import AuthPage from './pages/AuthPage'
-import ProtectedRoute from './components/ProtectedRoute'
+import ProtectedRoute from './components/auth/ProtectedRoute'
 
 function App() {
     return (
@@ -26,6 +27,7 @@ function App() {
             <Route element={<ProtectedRoute />}>
                 <Route path="/" element={<Layout />}>
                     <Route index element={<Dashboard />} />
+                    <Route path="threatmap" element={<ThreatMap />} />
                     <Route path="phishing" element={<Phishing />} />
                     <Route path="anomaly" element={<Anomaly />} />
                     <Route path="deepfake" element={<Deepfake />} />

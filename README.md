@@ -14,26 +14,23 @@ An advanced AI-powered cybersecurity platform with real-time threat detection, d
 ├── README.md                   # This file
 │
 ├── backend/                    # FastAPI Python backend
-│   ├── Dockerfile
+│   ├── main.py                 # Root entry point
+│   ├── app/                    # Core application logic
+│   │   ├── main.py             # FastAPI App instance
+│   │   ├── api/                # API routes
+│   │   ├── engines/            # AI & Simulation engines
+│   │   │   ├── deepfake_engine.py
+│   │   │   ├── ml_engine.py
+│   │   │   ├── honeypot.py
+│   │   │   └── predictive_sim.py
+│   │   ├── models/             # Local data & models
+│   │   │   ├── users.json
+│   │   │   └── anomaly_model.pkl
+│   │   ├── data/               # Datasets
+│   │   ├── utils/              # Shared utilities
+│   │   └── logs/               # Application logs
 │   ├── requirements.txt
-│   ├── main.py                 # FastAPI app entry point
-│   ├── deepfake_engine.py      # Deepfake video/image detection engine
-│   ├── ml_engine.py            # ML anomaly detection engine
-│   ├── honeypot.py             # Honeypot simulation module
-│   ├── predictive_sim.py       # Predictive threat simulation
-│   ├── generate_dataset.py     # Dataset generation utilities
-│   ├── users.json              # User store (dev only)
-│   ├── data/
-│   │   ├── network_dataset.csv # Training/test network data
-│   │   └── anomaly_test.csv    # Anomaly test samples
-│   ├── models/
-│   │   └── anomaly_model.pkl   # Trained anomaly detection model
-│   ├── tests/                  # Unit & integration tests
-│   │   ├── test_edge.py
-│   │   ├── test_imports.py
-│   │   └── test_honeypot.py
-│   └── logs/                   # Runtime logs
-│       └── server_log.txt
+│   └── Dockerfile
 │
 └── frontend/                   # React + Vite + TypeScript frontend
     ├── Dockerfile

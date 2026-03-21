@@ -33,7 +33,7 @@ const ThreatMap: React.FC<ThreatMapProps> = ({ markers }) => {
                 className="w-full h-full"
             >
                 <Sphere stroke="#1e293b" strokeWidth={0.5} id={"sphere"} fill={"none"} />
-                <Graticule stroke="#1e293b" strokeWidth={0.5} />
+                <Graticule stroke="#1e293b" strokeWidth={0.3} />
                 <Geographies geography={geoUrl}>
                     {({ geographies }: { geographies: any[] }) =>
                         geographies.map((geo: any) => (
@@ -45,7 +45,7 @@ const ThreatMap: React.FC<ThreatMapProps> = ({ markers }) => {
                                 strokeWidth={0.5}
                                 style={{
                                     default: { outline: "none" },
-                                    hover: { fill: "#1e293b", outline: "none" },
+                                    hover: { fill: "#16213e", outline: "none", transition: 'all 0.3s' },
                                     pressed: { outline: "none" }
                                 }}
                             />
@@ -56,32 +56,53 @@ const ThreatMap: React.FC<ThreatMapProps> = ({ markers }) => {
                     <Marker key={id} coordinates={coordinates}>
                         <g>
                             <motion.circle
-                                initial={{ r: 0, opacity: 1 }}
-                                animate={{ r: 15, opacity: 0 }}
+                                initial={{ r: 0, opacity: 0.8 }}
+                                animate={{ r: 25, opacity: 0 }}
                                 transition={{
-                                    duration: 2,
+                                    duration: 2.5,
                                     repeat: Infinity,
                                     ease: "easeOut"
                                 }}
-                                fill={severity === "high" ? "#ef4444" : "#f97316"}
+                                fill={severity === "high" ? "rgba(239, 68, 68, 0.4)" : "rgba(249, 115, 22, 0.4)"}
+                            />
+                            <motion.circle
+                                initial={{ r: 0, opacity: 1 }}
+                                animate={{ r: 12, opacity: 0 }}
+                                transition={{
+                                    duration: 2,
+                                    repeat: Infinity,
+                                    ease: "easeOut",
+                                    delay: 0.5
+                                }}
+                                fill={severity === "high" ? "rgba(239, 68, 68, 0.6)" : "rgba(249, 115, 22, 0.6)"}
                             />
                             <circle
-                                r={4}
+                                r={3.5}
                                 fill={severity === "high" ? "#ef4444" : "#f97316"}
                                 stroke="#fff"
                                 strokeWidth={1}
+                                className="shadow-lg shadow-black"
                             />
                         </g>
                     </Marker>
                 ))}
             </ComposableMap>
 
+            {/* Scanline Effect */}
+            <div className="absolute inset-0 pointer-events-none bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.1)_50%),linear-gradient(90deg,rgba(255,0,0,0.02),rgba(0,255,0,0.01),rgba(0,0,255,0.02))] z-10 bg-[length:100%_2px,3px_100%]" />
+            
+            {/* Pulsing Grid Overlay */}
+            <div className="absolute inset-0 pointer-events-none opacity-[0.03] z-10 bg-[radial-gradient(#00f0ff_1px,transparent_1px)] bg-[size:20px_20px] animate-pulse" />
+
             {/* Decorative Overlays */}
-            <div className="absolute top-4 left-4 p-2 bg-slate-900/80 border border-brand-cyan/30 rounded text-[10px] uppercase tracking-widest text-brand-cyan font-mono backdrop-blur-sm">
-                Global Signal Sync: ACTIVE
+            <div className="absolute top-6 left-6 p-4 bg-slate-900/60 border border-brand-cyan/20 rounded-2xl text-[10px] uppercase tracking-[0.3em] text-brand-cyan font-black backdrop-blur-md shadow-2xl flex items-center space-x-3">
+                <div className="w-1.5 h-1.5 rounded-full bg-brand-cyan animate-ping" />
+                <span>Global Signal ingestion: 12.4ms</span>
             </div>
-            <div className="absolute bottom-4 right-4 text-[10px] text-slate-500 font-mono">
-                PROJECTION: EQUirectangular | GRID: 15°
+            
+            <div className="absolute bottom-6 right-6 flex flex-col items-end space-y-1">
+                <div className="text-[9px] font-black text-slate-500 uppercase tracking-widest font-mono">Projection: Mercator // Grid: 15°</div>
+                <div className="text-[8px] font-bold text-slate-600 uppercase tracking-tighter">SECUREVISION TACTICAL MAPPING SYSTEM V4.1</div>
             </div>
         </div>
     );

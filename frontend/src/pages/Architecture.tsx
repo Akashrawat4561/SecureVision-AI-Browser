@@ -40,14 +40,14 @@ export default function Architecture() {
                     <div className="flex flex-col items-center opacity-60 relative group">
                         <ArrowRight className="w-8 h-8 text-slate-500 hidden md:block" />
                         <ArrowDown className="w-8 h-8 text-slate-500 md:hidden my-4" />
-                        
+
                         {/* Shooting Particle */}
-                        <motion.div 
+                        <motion.div
                             animate={{ x: [0, 80], opacity: [0, 1, 0] }}
                             transition={{ repeat: Infinity, duration: 1.5, ease: "linear" }}
                             className="absolute top-1/2 left-0 w-2 h-2 bg-brand-cyan rounded-full hidden md:block"
                         />
-                        
+
                         <span className="text-[10px] font-mono text-slate-500 mt-2 bg-slate-950 px-2 rounded border border-slate-800">REST API / WSS</span>
                     </div>
 
@@ -73,9 +73,9 @@ export default function Architecture() {
                     <div className="flex flex-col items-center opacity-60 relative">
                         <ArrowRight className="w-8 h-8 text-slate-500 hidden md:block" />
                         <ArrowDown className="w-8 h-8 text-slate-500 md:hidden my-4" />
-                        
+
                         {/* Shooting Particle */}
-                        <motion.div 
+                        <motion.div
                             animate={{ x: [0, 80], opacity: [0, 1, 0] }}
                             transition={{ repeat: Infinity, duration: 1.5, ease: "linear", delay: 0.75 }}
                             className="absolute top-1/2 left-0 w-2 h-2 bg-brand-orange rounded-full hidden md:block"
@@ -133,7 +133,7 @@ export default function Architecture() {
                     <div className="flex items-center">
                         <div className="relative mr-4">
                             <ShieldCheck className="w-8 h-8 text-green-500" />
-                            <motion.div 
+                            <motion.div
                                 animate={{ scale: [1, 1.2, 1], opacity: [0.5, 0.8, 0.5] }}
                                 transition={{ repeat: Infinity, duration: 2 }}
                                 className="absolute inset-0 bg-green-500 rounded-full blur-md -z-10"

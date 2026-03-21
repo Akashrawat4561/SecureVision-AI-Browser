@@ -1,166 +1,347 @@
-import { ShieldAlert, AlertTriangle, ArrowRight, Share2, CheckSquare, Activity, ShieldOff, Zap, Lock, Globe } from 'lucide-react';
+import {
+    ShieldAlert,
+    AlertTriangle,
+    ArrowRight,
+    Share2,
+    Activity,
+    Zap,
+    FileText,
+    Ban,
+    Loader2,
+    CheckCircle2,
+    XCircle,
+    ShieldCheck,
+    Globe,
+    Layers,
+    Target
+} from 'lucide-react';
 import { useWebSocket } from '../context/WebSocketContext';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+
+type ActionFeedback = {
+    tone: 'success' | 'error';
+    message: string;
+};
+
+const env = (import.meta as ImportMeta & { env?: Record<string, string> }).env;
+const API_BASE = env?.VITE_API_BACKEND?.replace(/\/$/, '') || 'http://localhost:8000/api';
 
 export default function ResponseCenter() {
     const { alerts } = useWebSocket();
     const [selectedAlertId, setSelectedAlertId] = useState<number | null>(null);
+    const [pendingAction, setPendingAction] = useState<string | null>(null);
+    const [feedback, setFeedback] = useState<ActionFeedback | null>(null);
 
-    const selectedAlert = alerts.find(a => a.id === selectedAlertId) || alerts[0];
+    const selectedAlert = useMemo(
+        () => alerts.find((alert) => alert.id === selectedAlertId) || alerts[0],
+        [alerts, selectedAlertId]
+    );
+
+    const showFeedback = (tone: ActionFeedback['tone'], message: string) => {
+        setFeedback({ tone, message });
+        window.setTimeout(() => setFeedback(null), 3500);
+    };
+
+    const shareIntel = async (intelType: string, source: string) => {
+        const response = await fetch(`${API_BASE}/intel/share`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                hash: `SEC-${Math.random().toString(16).slice(2, 10)}`,
+                type: intelType,
+                source,
+            }),
+        });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error((data as { detail?: string }).detail || 'Request failed.');
+    };
+
+    const handleAlertAction = async (action: string, label: string) => {
+        if (!selectedAlert) {
+            showFeedback('error', 'Select an alert first.');
+            return;
+        }
+        setPendingAction(action);
+        try {
+            await shareIntel(`RESPONSE_${action.toUpperCase()}`, `response-center:${selectedAlert.id}`);
+            showFeedback('success', `${label} executed for event #${selectedAlert.id}.`);
+        } catch (error) {
+            showFeedback('error', error instanceof Error ? error.message : 'Action failed.');
+        } finally {
+            setPendingAction(null);
+        }
+    };
+
+    const handleReportGenerate = async () => {
+        setPendingAction('report');
+        try {
+            const reportLines = [
+                'SECURE-VISION RESPONSE REPORT',
+                `timestamp=${new Date().toISOString()}`,
+                `selected_event=${selectedAlert?.id ?? 'none'}`,
+                `selected_title=${selectedAlert?.title ?? 'none'}`,
+                `selected_source=${selectedAlert?.source ?? 'none'}`,
+                '--- recent alerts ---',
+                ...alerts.slice(0, 20).map((a) => `${a.time ?? 'unknown'} | ${a.type ?? 'UNKNOWN'} | ${a.title ?? 'Untitled'} | ${a.source ?? 'Unknown'}`),
+            ];
+            const blob = new Blob([reportLines.join('\n')], { type: 'text/plain;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `response_report_${Date.now()}.txt`;
+            link.click();
+            URL.revokeObjectURL(url);
+            await shareIntel('RESPONSE_REPORT', 'response-center:report');
+            showFeedback('success', 'Report generated and downloaded.');
+        } catch (error) {
+            showFeedback('error', error instanceof Error ? error.message : 'Report generation failed.');
+        } finally {
+            setPendingAction(null);
+        }
+    };
 
     return (
-        <div className="space-y-6">
-            <div className="flex items-center justify-between">
-                <h1 className="text-2xl font-bold tracking-tight text-white uppercase">Threat Response Center</h1>
+        <div className="space-y-10 max-w-[1600px] mx-auto pb-16">
+            {/* Mission Header */}
+            <div className="flex flex-col md:flex-row md:items-end justify-between gap-8 mb-12">
+                <div className="space-y-3">
+                    <div className="flex items-center space-x-2 text-brand-cyan mb-1">
+                        <div className="w-1.5 h-1.5 rounded-full bg-brand-cyan shadow-[0_0_8px_#00f0ff] animate-pulse" />
+                        <span className="text-[10px] font-black uppercase tracking-[0.4em] font-mono whitespace-nowrap">Tactical Command // Response</span>
+                    </div>
+                    <h1 className="text-5xl font-black text-white uppercase italic tracking-tighter font-heading leading-none">
+                        Mitigation <span className="text-brand-cyan not-italic">Hub</span>
+                    </h1>
+                    <p className="text-slate-500 text-sm font-medium max-w-xl">
+                        Autonomous mitigation protocols and real-time alert chronology management for Level-4 operators.
+                    </p>
+                </div>
+
                 <div className="flex space-x-3">
-                    <button className="bg-slate-800 hover:bg-slate-700 text-sm font-medium text-white py-2 px-4 rounded-lg flex items-center transition-colors">
-                        <Share2 className="w-4 h-4 mr-2 text-brand-cyan" />
-                        Share Threat Signatures
+                    <button
+                        disabled={pendingAction === 'share'}
+                        onClick={async () => {
+                            setPendingAction('share');
+                            try {
+                                await shareIntel('DISTRIBUTED_VECTOR', 'response-center:manual-share');
+                                showFeedback('success', 'Signatures distributed.');
+                            } catch (error) {
+                                showFeedback('error', error instanceof Error ? error.message : 'Share failed.');
+                            } finally {
+                                setPendingAction(null);
+                            }
+                        }}
+                        className="bg-slate-950 text-slate-500 border border-white/5 hover:border-brand-cyan/20 hover:text-white px-8 py-4 rounded-[24px] text-xs font-black uppercase tracking-widest transition-all backdrop-blur-md group disabled:opacity-40"
+                    >
+                        {pendingAction === 'share' ? (
+                            <Loader2 className="w-4 h-4 mr-3 animate-spin" />
+                        ) : (
+                            <Share2 className="w-4 h-4 mr-3 group-hover:rotate-12 transition-transform" />
+                        )}
+                        Distribute Signatures
+                    </button>
+                    <button
+                        disabled={pendingAction === 'report'}
+                        onClick={handleReportGenerate}
+                        className="bg-brand-cyan text-slate-950 px-8 py-4 rounded-[24px] text-xs font-black uppercase tracking-widest hover:bg-white transition-all shadow-[0_20px_40px_rgba(0,240,255,0.2)] disabled:opacity-40 flex items-center"
+                    >
+                        {pendingAction === 'report' ? <Loader2 className="w-4 h-4 mr-3 animate-spin" /> : <FileText className="w-4 h-4 mr-3" />}
+                        Generate Report
                     </button>
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
                 {/* Timeline */}
-                <div className="lg:col-span-2 glass-panel p-6 h-[800px] flex flex-col">
-                    <div className="flex justify-between items-center mb-8">
-                        <h2 className="text-sm font-semibold text-slate-400 uppercase tracking-wider">LIVE ALERT CHRONOLOGY</h2>
-                        <span className="text-xs bg-slate-900 border border-slate-700 px-2 py-1 rounded text-brand-cyan animate-pulse">Syncing...</span>
-                    </div>
-
-                    <div className="flex-1 overflow-y-auto pr-4 space-y-8 relative before:absolute before:inset-0 before:ml-5 before:-translate-x-px md:before:mx-auto md:before:translate-x-0 before:h-full before:w-0.5 before:bg-gradient-to-b before:from-brand-cyan before:via-brand-orange before:to-transparent pb-10">
-
-                        {alerts.length === 0 && <div className="text-center text-slate-500 py-10">No alerts in current session.</div>}
-
-                        {alerts.map((item) => (
-                            <div key={item.id} onClick={() => setSelectedAlertId(item.id || null)} className="relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group is-active">
-
-                                {/* Timeline Icon */}
-                                <div className={`flex items-center justify-center w-10 h-10 rounded-full border-4 border-slate-950 bg-slate-900 shrink-0 md:order-1 md:group-odd:-translate-x-1/2 md:group-even:translate-x-1/2 shadow-[0_0_0_4px_#0b101e] z-10 transition-colors
-                  ${item.id === selectedAlert?.id ? 'border-white text-white scale-110' :
-                                        item.severity === 'high' ? 'border-brand-red text-brand-red' :
-                                            item.severity === 'medium' ? 'border-brand-orange text-brand-orange' : 'border-brand-cyan text-brand-cyan'}`}>
-                                    {item.severity === 'high' ? <ShieldAlert className="w-4 h-4" /> : item.severity === 'medium' ? <AlertTriangle className="w-4 h-4" /> : <Activity className="w-4 h-4" />}
-                                </div>
-
-                                {/* Timeline Card */}
-                                <div className={`w-[calc(100%-4rem)] md:w-[calc(50%-2.5rem)] bg-slate-900/80 p-5 rounded-xl border transition-colors cursor-pointer group-hover:bg-slate-800/80
-                  ${item.id === selectedAlert?.id ? 'border-brand-cyan shadow-[0_0_15px_rgba(0,240,255,0.1)]' : 'border-slate-700/50 hover:border-slate-500'}`}>
-                                    <div className="flex items-center justify-between mb-2">
-                                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-sm uppercase tracking-wider ${item.severity === 'high' ? 'bg-brand-red/20 text-brand-red' :
-                                            item.severity === 'medium' ? 'bg-brand-orange/20 text-brand-orange' :
-                                                'bg-brand-cyan/20 text-brand-cyan'
-                                            }`}>{item.type}</span>
-                                        <time className="text-xs font-mono text-slate-500">{item.time}</time>
-                                    </div>
-                                    <h3 className="text-base font-bold text-slate-200 mb-1">{item.title}</h3>
-                                    <p className="text-xs text-slate-400 mb-3 block">Source: {item.source}</p>
-
-                                    <div className="mt-4 pt-4 border-t border-slate-800 flex items-center justify-between md:hidden group-hover:flex">
-                                        <button className="text-xs text-brand-cyan hover:text-white transition-colors flex items-center">
-                                            Investigate <ArrowRight className="w-3 h-3 ml-1" />
-                                        </button>
-                                    </div>
-                                </div>
+                <div className="lg:col-span-2 glass-panel p-10 h-[800px] flex flex-col relative overflow-hidden group">
+                    <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-brand-cyan/0 via-brand-cyan/20 to-brand-cyan/0" />
+                    
+                    <div className="flex justify-between items-center mb-12 relative z-10">
+                        <div className="flex items-center space-x-4">
+                            <div className="p-2.5 bg-brand-cyan/10 rounded-xl border border-brand-cyan/20">
+                                <Activity className="w-5.5 h-5.5 text-brand-cyan" />
                             </div>
-                        ))}
-
-                    </div>
-                </div>
-
-                {/* Selected Alert Action Panel */}
-                <div className="glass-panel p-6 flex flex-col h-[600px] sticky top-6">
-                    <div className="mb-6 flex items-center">
-                        <CheckSquare className="w-5 h-5 text-brand-cyan mr-3" />
-                        <h2 className="text-lg font-semibold text-white tracking-wider">ACTION ALERT</h2>
+                            <h2 className="text-2xl font-black text-white uppercase italic tracking-tighter font-heading">Alert Chronology</h2>
+                        </div>
+                        <div className="flex items-center space-x-3 px-4 py-2 bg-slate-950/80 border border-white/5 rounded-2xl">
+                            <div className="w-2 h-2 rounded-full bg-brand-cyan animate-pulse shadow-[0_0_8px_#00f0ff]" />
+                            <span className="text-[10px] font-black text-brand-cyan uppercase tracking-widest">Live Feed</span>
+                        </div>
                     </div>
 
-                    {selectedAlert ? (
-                        <div className={`border rounded-lg p-5 mb-6 transition-colors ${selectedAlert.severity === 'high' ? 'bg-brand-red/10 border-brand-red/30' :
-                            selectedAlert.severity === 'medium' ? 'bg-brand-orange/10 border-brand-orange/30' : 'bg-brand-cyan/10 border-brand-cyan/30'
-                            }`}>
-                            <span className={`text-xs font-bold uppercase tracking-widest block mb-2 ${selectedAlert.severity === 'high' ? 'text-brand-red' : selectedAlert.severity === 'medium' ? 'text-brand-orange' : 'text-brand-cyan'
-                                }`}>SELECTED EVENT #{selectedAlert.id}</span>
-                            <h3 className="text-xl font-bold text-white mb-2">{selectedAlert.title}</h3>
-                            <p className="text-sm text-slate-300 mb-4">Detected from {selectedAlert.source} at {selectedAlert.time}. Action context is ready for review.</p>
+                    <div className="flex-1 overflow-y-auto custom-scrollbar pr-4 space-y-8 relative z-10 pb-10">
+                        <div className="absolute left-7.5 top-0 bottom-0 w-px bg-white/5" />
 
-                            {selectedAlert.gradcam && (
-                                <div className="mb-4 bg-slate-950 rounded-lg overflow-hidden border border-slate-700">
-                                    <div className="bg-slate-900 py-1 px-3 border-b border-slate-800 flex justify-between items-center">
-                                        <span className="text-[10px] text-brand-orange font-bold uppercase tracking-widest">Grad-CAM Forensic Evidence</span>
-                                    </div>
-                                    <img src={selectedAlert.gradcam} alt="Forensic Evidence" className="w-full h-auto object-contain" />
+                        <AnimatePresence mode="popLayout">
+                            {alerts.length === 0 && (
+                                <div className="text-center py-20">
+                                    <ShieldCheck className="w-16 h-16 text-slate-800 mx-auto mb-6 opacity-20" />
+                                    <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em]">Perimeter Domain: Secure_</p>
                                 </div>
                             )}
 
-                            <div className="space-y-2 mt-4 text-sm font-mono bg-slate-950 p-3 rounded">
-                                <div className="flex justify-between"><span className="text-slate-500">SEVERITY:</span> <span className={selectedAlert.severity === 'high' ? 'text-brand-red' : 'text-brand-orange'}>{selectedAlert.severity?.toUpperCase()}</span></div>
-                                <div className="flex justify-between"><span className="text-slate-500">SOURCE:</span> <span className="text-slate-300">{selectedAlert.source}</span></div>
-                                <div className="flex justify-between"><span className="text-slate-500">STATUS:</span> <span className="text-brand-cyan">UNRESOLVED</span></div>
+                            {alerts.map((item) => (
+                                <motion.div 
+                                    layout
+                                    initial={{ opacity: 0, x: -20 }}
+                                    animate={{ opacity: 1, x: 0 }}
+                                    key={item.id} 
+                                    onClick={() => setSelectedAlertId(item.id || null)} 
+                                    className="relative flex items-start group cursor-pointer"
+                                >
+                                    {/* Timeline Marker */}
+                                    <div className={`flex items-center justify-center w-12 h-12 rounded-[18px] border bg-slate-950 shrink-0 z-10 transition-all duration-500
+                                      ${item.id === selectedAlert?.id ? 'border-brand-cyan bg-brand-cyan/10 scale-110 shadow-[0_0_25px_rgba(0,240,250,0.3)]' :
+                                            item.severity === 'high' ? 'text-brand-red border-brand-red/20' :
+                                                item.severity === 'medium' ? 'text-brand-orange border-brand-orange/20' : 'text-brand-cyan border-brand-cyan/20'}`}>
+                                        {item.severity === 'high' ? <ShieldAlert className="w-5 h-5" /> : item.severity === 'medium' ? <AlertTriangle className="w-5 h-5" /> : <Activity className="w-5 h-5" />}
+                                    </div>
+
+                                    {/* Alert Card */}
+                                    <div className={`ml-8 flex-1 glass-panel p-8 border-white/5 transition-all duration-500 group-hover:bg-slate-900/60
+                                      ${item.id === selectedAlert?.id ? 'border-brand-cyan shadow-2xl bg-slate-900/80' : 'hover:border-white/10'}`}>
+                                        <div className="flex items-start justify-between mb-4">
+                                            <div className="space-y-1">
+                                                <span className={`text-[9px] font-black px-3 py-1 rounded-xl uppercase tracking-widest border ${item.severity === 'high' ? 'bg-brand-red/10 text-brand-red border-brand-red/20' :
+                                                    item.severity === 'medium' ? 'bg-brand-orange/10 text-brand-orange border-brand-orange/20' :
+                                                        'bg-brand-cyan/10 text-brand-cyan border-brand-cyan/20'
+                                                }`}>{item.type}</span>
+                                                <h3 className="text-xl font-black text-white uppercase italic tracking-tighter font-heading mt-2">{item.title}</h3>
+                                            </div>
+                                            <time className="text-[10px] font-black font-mono text-slate-600 uppercase tracking-widest">{item.time}</time>
+                                        </div>
+                                        
+                                        <div className="flex items-center justify-between mt-6">
+                                            <p className="text-[9px] text-slate-500 font-black uppercase tracking-widest flex items-center">
+                                                <Globe className="w-3 h-3 mr-2 opacity-40" />
+                                                Source: <span className="text-slate-300 ml-2">{item.source}</span>
+                                            </p>
+                                            
+                                            <div className="flex items-center space-x-4 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                <button className="text-[9px] font-black text-brand-cyan uppercase tracking-[0.2em] flex items-center hover:text-white transition-colors">
+                                                    Analyze <ArrowRight className="w-3 h-3 ml-2" />
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </motion.div>
+                            ))}
+                        </AnimatePresence>
+                    </div>
+                </div>
+
+                {/* Mitigation Protocol Panel */}
+                <div className="glass-panel p-10 flex flex-col h-[800px] sticky top-10 overflow-hidden group">
+                    <div className="absolute top-0 right-0 w-64 h-64 bg-brand-cyan/5 blur-[80px] rounded-full pointer-events-none" />
+                    
+                    <div className="mb-10 flex items-center relative z-10">
+                        <div className="p-2.5 bg-brand-orange/10 rounded-xl border border-brand-orange/20 mr-4">
+                            <Target className="w-5.5 h-5.5 text-brand-orange" />
+                        </div>
+                        <h2 className="text-2xl font-black text-white uppercase italic tracking-tighter font-heading">Decision Logic</h2>
+                    </div>
+
+                    {selectedAlert ? (
+                        <div className="flex flex-col flex-1 relative z-10">
+                            <AnimatePresence>
+                                {feedback && (
+                                    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className={`mb-6 rounded-2xl border p-4 text-[10px] font-black uppercase tracking-widest flex items-center shadow-xl backdrop-blur-xl ${feedback.tone === 'success' ? 'border-brand-cyan/20 bg-brand-cyan/10 text-brand-cyan' : 'border-brand-red/20 bg-brand-red/10 text-brand-red'}`}>
+                                        {feedback.tone === 'success' ? <CheckCircle2 className="w-4 h-4 mr-3" /> : <XCircle className="w-4 h-4 mr-3" />}
+                                        {feedback.message}
+                                    </motion.div>
+                                )}
+                            </AnimatePresence>
+
+                            <div className={`p-8 rounded-[40px] border mb-10 transition-all duration-500 relative shadow-2xl overflow-hidden
+                                ${selectedAlert.severity === 'high' ? 'bg-brand-red/5 border-brand-red/20' :
+                                  selectedAlert.severity === 'medium' ? 'bg-brand-orange/5 border-brand-orange/20' : 'bg-brand-cyan/5 border-brand-cyan/20'
+                            }`}>
+                                <div className="absolute top-0 right-0 p-6 opacity-10">
+                                    <ShieldAlert className="w-16 h-16" />
+                                </div>
+                                <span className={`text-[10px] font-black uppercase tracking-[0.3em] block mb-4 italic ${selectedAlert.severity === 'high' ? 'text-brand-red' : 'text-slate-500'}`}>
+                                    SIG_ID_{selectedAlert.id?.toString().padStart(4, '0') || '0000'}
+                                </span>
+                                <h3 className="text-3xl font-black text-white mb-4 uppercase italic leading-none tracking-tighter font-heading">{selectedAlert.title}</h3>
+                                <p className="text-xs text-slate-500 font-bold uppercase tracking-widest leading-relaxed">Mitigation vectors pending operator authorization.</p>
+
+                                <div className="grid grid-cols-2 gap-4 mt-8">
+                                    <div className="p-4 bg-slate-950/80 rounded-2xl border border-white/5">
+                                        <span className="text-[9px] font-black text-slate-600 uppercase tracking-widest block mb-1">Severity</span>
+                                        <span className={`text-xs font-black uppercase italic ${selectedAlert.severity === 'high' ? 'text-brand-red font-mono' : 'text-brand-orange font-mono'}`}>{selectedAlert.severity?.toUpperCase()}</span>
+                                    </div>
+                                    <div className="p-4 bg-slate-950/80 rounded-2xl border border-white/5">
+                                        <span className="text-[9px] font-black text-slate-600 uppercase tracking-widest block mb-1">Impact</span>
+                                        <span className="text-xs font-black uppercase italic text-brand-cyan font-mono">Unresolved_</span>
+                                    </div>
+                                </div>
                             </div>
 
-                            {/* Playbook Section */}
-                            <div className="mt-8">
-                                <h4 className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em] mb-4">Suggested AI Playbook</h4>
-                                <div className="space-y-3">
-                                    <div className="p-3 bg-slate-900 border border-slate-700 rounded-lg flex items-center group cursor-pointer hover:border-brand-cyan transition-colors">
-                                        <div className="w-8 h-8 rounded bg-brand-cyan/10 flex items-center justify-center mr-3 group-hover:bg-brand-cyan/20">
-                                            <ShieldOff className="w-4 h-4 text-brand-cyan" />
-                                        </div>
-                                        <div className="flex-1">
-                                            <div className="text-xs font-bold text-white">Quarantine Node</div>
-                                            <div className="text-[10px] text-slate-500">Isolate source from internal VLAN</div>
-                                        </div>
-                                        <Zap className="w-3 h-3 text-slate-700 group-hover:text-brand-cyan" />
-                                    </div>
-                                    <div className="p-3 bg-slate-900 border border-slate-700 rounded-lg flex items-center group cursor-pointer hover:border-brand-orange transition-colors">
-                                        <div className="w-8 h-8 rounded bg-brand-orange/10 flex items-center justify-center mr-3 group-hover:bg-brand-orange/20">
-                                            <Lock className="w-4 h-4 text-brand-orange" />
-                                        </div>
-                                        <div className="flex-1">
-                                            <div className="text-xs font-bold text-white">Rotate Credentials</div>
-                                            <div className="text-[10px] text-slate-500">Force password reset on all admins</div>
-                                        </div>
-                                        <Zap className="w-3 h-3 text-slate-700 group-hover:text-brand-orange" />
-                                    </div>
-                                    <div className="p-3 bg-slate-900 border border-slate-700 rounded-lg flex items-center group cursor-pointer hover:border-brand-red transition-colors">
-                                        <div className="w-8 h-8 rounded bg-brand-red/10 flex items-center justify-center mr-3 group-hover:bg-brand-red/20">
-                                            <Globe className="w-4 h-4 text-brand-red" />
-                                        </div>
-                                        <div className="flex-1">
-                                            <div className="text-xs font-bold text-white">Block IP Registry</div>
-                                            <div className="text-[10px] text-slate-500">Update global firewall signatures</div>
-                                        </div>
-                                        <Zap className="w-3 h-3 text-slate-700 group-hover:text-brand-red" />
-                                    </div>
+                            {/* Playbooks */}
+                            <div className="space-y-4 mb-auto">
+                                <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em] pl-1 mb-4 italic">Defensive Playbooks</h4>
+                                <div className="space-y-4">
+                                    {[
+                                        { id: 'quarantine', label: 'Quarantine Node', desc: 'Isolate source VLAN segment', color: 'text-brand-cyan', bg: 'bg-brand-cyan/10' },
+                                        { id: 'rotate', label: 'Rotate Gateway', desc: 'Invalidate session tokens', color: 'text-brand-orange', bg: 'bg-brand-orange/10' },
+                                        { id: 'blacklist', label: 'Global Blacklist', desc: 'Sync firewall signatures', color: 'text-brand-red', bg: 'bg-brand-red/10' }
+                                    ].map((action, i) => (
+                                        <button
+                                            key={i}
+                                            disabled={!!pendingAction}
+                                            onClick={() => void handleAlertAction(action.id, action.label)}
+                                            className="w-full p-5 bg-slate-950/40 border border-white/5 rounded-[28px] flex items-center group/btn hover:bg-slate-950/60 hover:border-white/10 transition-all shadow-inner disabled:opacity-40"
+                                        >
+                                            <div className={`w-12 h-12 rounded-2xl ${action.bg} flex items-center justify-center mr-5 transition-transform group-hover/btn:scale-110`}>
+                                                {pendingAction === action.id ? <Loader2 className={`w-5 h-5 ${action.color} animate-spin`} /> : <Zap className={`w-5 h-5 ${action.color}`} />}
+                                            </div>
+                                            <div className="text-left">
+                                                <div className="text-xs font-black text-white uppercase tracking-widest">{action.label}</div>
+                                                <div className="text-[9px] text-slate-500 font-black uppercase tracking-widest mt-1">{action.desc}</div>
+                                            </div>
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* Primary Commit */}
+                            <div className="pt-8 space-y-4 border-t border-white/5">
+                                <button
+                                    disabled={!selectedAlert || !!pendingAction}
+                                    onClick={() => void handleAlertAction('resolve', 'Commit')}
+                                    className="w-full bg-white text-slate-950 hover:bg-brand-cyan transition-all font-black uppercase tracking-[0.3em] text-[10px] py-5 rounded-[24px] shadow-2xl disabled:opacity-20 active:scale-[0.98]"
+                                >
+                                    Commit Global Resolution
+                                </button>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <button
+                                        disabled={!selectedAlert || !!pendingAction}
+                                        onClick={() => void handleAlertAction('benign', 'Benign')}
+                                        className="py-4 bg-slate-900 border border-white/5 text-slate-500 hover:text-white hover:border-white/20 transition-all uppercase tracking-widest text-[9px] font-black rounded-2xl flex justify-center items-center disabled:opacity-20"
+                                    >
+                                        <Ban className="w-3.5 h-3.5 mr-2" />
+                                        Silent Drop
+                                    </button>
+                                    <button
+                                        disabled={!selectedAlert || !!pendingAction}
+                                        onClick={() => void handleAlertAction('escalate', 'Escalate')}
+                                        className="py-4 bg-brand-red/10 border border-brand-red/20 text-brand-red hover:bg-brand-red/20 transition-all uppercase tracking-widest text-[9px] font-black rounded-2xl flex justify-center items-center disabled:opacity-20"
+                                    >
+                                        <ShieldAlert className="w-3.5 h-3.5 mr-2" />
+                                        Escalate SIEM
+                                    </button>
                                 </div>
                             </div>
                         </div>
                     ) : (
-                        <div className="flex flex-col items-center justify-center py-20 opacity-50">
-                            <ShieldAlert className="w-16 h-16 text-slate-500 mb-4" />
-                            <p className="text-sm text-slate-500 text-center">Select an alert from the timeline to view details and take action.</p>
+                        <div className="flex flex-col items-center justify-center py-20 opacity-20 text-center">
+                            <Layers className="w-24 h-24 text-slate-700 mb-8 animate-pulse" />
+                            <p className="text-[10px] font-black text-slate-600 uppercase tracking-[0.2em] max-w-[200px] leading-relaxed italic">Synchronizing Tactical Buffer...</p>
                         </div>
                     )}
-
-                    <div className="flex-1"></div>
-
-                    <div className="space-y-3 mt-6">
-                        <button disabled={!selectedAlert} className="w-full bg-slate-800 hover:bg-slate-700 text-white font-medium py-3 rounded-lg border border-slate-700 transition-colors uppercase tracking-wider text-sm shadow-md disabled:opacity-50">
-                            Mark as Read
-                        </button>
-                        <button disabled={!selectedAlert} className="w-full bg-slate-900 hover:bg-slate-800 text-slate-400 font-medium py-3 rounded-lg border border-slate-800 transition-colors uppercase tracking-wider text-sm disabled:opacity-50">
-                            Ignore & Adjust Baseline
-                        </button>
-                        <button disabled={!selectedAlert} className="w-full bg-brand-red/20 hover:bg-brand-red/30 text-brand-red font-bold py-3 rounded-lg border border-brand-red/50 transition-colors uppercase tracking-wider text-sm shadow-[0_0_15px_rgba(255,42,42,0.15)] flex items-center justify-center disabled:opacity-50">
-                            <ShieldAlert className="w-4 h-4 mr-2" />
-                            Report Incident
-                        </button>
-                    </div>
                 </div>
-
             </div>
         </div>
-    )
+    );
 }

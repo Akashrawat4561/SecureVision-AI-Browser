@@ -11,7 +11,14 @@ requests
 Pillow
 onnx
 torch
+torchvision
+torchaudio
+timm
+open_clip_torch
+mediapipe
 redis
 passlib[bcrypt]
 python-jose[cryptography]
 python-dotenv
+numpy
+scipy

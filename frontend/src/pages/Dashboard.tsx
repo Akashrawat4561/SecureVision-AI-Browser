@@ -1,44 +1,33 @@
-import { ShieldAlert, AlertTriangle, Eye, Activity, MailWarning, ShieldCheck } from 'lucide-react';
+import { ShieldAlert, Activity, MailWarning, TrendingUp, Globe, Cpu, Target, Radar } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useWebSocket } from '../context/WebSocketContext';
 import { useMemo } from 'react';
-import ThreatMap from '../components/ThreatMap';
+import ThreatMap from '../components/dashboard/ThreatMap';
 
 export default function Dashboard() {
     const { data, alerts, connected } = useWebSocket();
 
-    // Dynamic threat counters based on history/alerts
     const stats = useMemo(() => {
         let emailThreats = 0;
         let anomalyCount = 0;
-
-        // In a real app we'd aggregate over time, here we just count alerts in state
         alerts.forEach(a => {
             if (a.type?.includes('PHISHING')) emailThreats++;
             if (a.type?.includes('ANOMALY')) anomalyCount++;
         });
 
         return [
-            { name: 'Email Threats', value: emailThreats.toString(), alert: emailThreats > 0, icon: MailWarning, color: 'text-brand-red' },
-            { name: 'Network Anomalies', value: anomalyCount.toString(), alert: anomalyCount > 0, icon: Activity, color: 'text-brand-orange' },
-            { name: 'Edge Node Sync', value: data?.nodes?.length || 0, alert: false, icon: Eye, color: 'text-brand-cyan' },
-            { name: 'Global Threat Level', value: `${data?.global_threat_level || 15}%`, alert: (data?.global_threat_level || 0) > 50, icon: ShieldAlert, color: 'text-brand-red' },
+            { name: 'Active Threats', value: emailThreats.toString(), alert: emailThreats > 0, icon: ShieldAlert, color: 'brand-red', trend: '+12%', desc: 'Current critical vectors' },
+            { name: 'Neural Activity', value: anomalyCount.toString(), alert: anomalyCount > 0, icon: Activity, color: 'brand-cyan', trend: '98.4%', desc: 'Nodes sync efficiency' },
+            { name: 'Data Flow', value: (data?.traffic || 0).toString(), alert: false, icon: MailWarning, color: 'brand-orange', trend: '+4%', desc: 'Processing volume' },
+            { name: 'Global Readiness', value: `${data?.global_threat_level || 15}%`, alert: (data?.global_threat_level || 0) > 50, icon: Radar, color: 'brand-purple', trend: 'STABLE', desc: 'SecureVision topology' },
         ];
     }, [alerts, data]);
 
     const mapMarkers = useMemo(() => {
-        // Map alert sources to random real-world coordinates for the demo
         const locations: [number, number][] = [
-            [-74.006, 40.7128], // New York
-            [0.1278, 51.5074],   // London
-            [139.6503, 35.6762], // Tokyo
-            [151.2093, -33.8688], // Sydney
-            [-43.1729, -22.9068], // Rio
-            [18.4241, -33.9249],  // Cape Town
-            [77.1025, 28.7041],   // Delhi
-            [-118.2437, 34.0522]  // LA
+            [-74.006, 40.7128], [0.1278, 51.5074], [139.6503, 35.6762], [151.2093, -33.8688],
+            [-43.1729, -22.9068], [18.4241, -33.9249], [77.1025, 28.7041], [-118.2437, 34.0522]
         ];
-
         return alerts.slice(0, 10).map((a, i) => ({
             id: a.id || i,
             coordinates: locations[(a.id || i) % locations.length] as [number, number],
@@ -47,180 +36,240 @@ export default function Dashboard() {
         }));
     }, [alerts]);
 
-    const recentAlerts = alerts.slice(0, 5); // display up to 5
-
     return (
-        <div className="space-y-6">
-            <div className="flex items-center justify-between">
-                <h1 className="text-2xl font-bold tracking-tight text-white uppercase italic">The Central Hub <span className="text-brand-cyan not-italic">(The Pulse)</span></h1>
-                <div className="flex items-center space-x-6">
-                    {/* DEFCON Indicator */}
-                    <div className="hidden md:flex items-center space-x-2">
-                        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">THREAT_LEVEL</span>
-                        <div className="flex space-x-1">
+        <div className="space-y-10 max-w-[1600px] mx-auto pb-16">
+            {/* Mission Critical Header */}
+            <div className="flex flex-col md:flex-row md:items-end justify-between gap-8 mb-12">
+                <div className="space-y-3">
+                    <div className="flex items-center space-x-2 text-brand-cyan mb-1">
+                        <div className="w-1.5 h-1.5 rounded-full bg-brand-cyan shadow-[0_0_8px_#00f0ff] animate-pulse" />
+                        <span className="text-[10px] font-black uppercase tracking-[0.4em] font-mono">Live Intelligence Hub</span>
+                    </div>
+                    <h1 className="text-5xl font-black text-white uppercase italic tracking-tighter font-heading leading-none">
+                        Mission <span className="text-brand-cyan not-italic">Control</span>
+                    </h1>
+                    <p className="text-slate-500 text-sm font-medium max-w-xl">
+                        Real-time planetary-scale intelligence and threat mitigation across decentralized federated nodes.
+                    </p>
+                </div>
+
+                <div className="flex items-center space-x-6 bg-slate-900/40 backdrop-blur-2xl py-5 px-10 rounded-[32px] border border-white/5 relative overflow-hidden group">
+                    <div className="absolute inset-0 bg-gradient-to-r from-brand-cyan/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                    
+                    <div className="flex flex-col">
+                        <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-3">System Readiness</span>
+                        <div className="flex space-x-2">
                             {[1, 2, 3, 4, 5].map((level) => {
                                 const active = (data?.global_threat_level || 0) / 20 >= (6 - level);
                                 return (
-                                    <div 
-                                        key={level}
-                                        className={`w-4 h-6 border ${active ? 'bg-brand-red border-brand-red shadow-[0_0_10px_#ff2a2a50]' : 'border-slate-800 bg-slate-900'} transition-all`}
-                                    />
+                                    <div key={level} className={`w-3.5 h-6 rounded-md border transition-all duration-500 ${active ? 'bg-brand-red border-brand-red shadow-[0_0_15px_#ff2a2e]' : 'border-white/5 bg-slate-950'}`} />
                                 );
                             })}
                         </div>
                     </div>
-
-                    <div className={`flex items-center space-x-2 bg-slate-800/50 py-1.5 px-3 rounded-full border ${connected ? 'border-green-500/50' : 'border-red-500/50'}`}>
-                        <div className={`w-2 h-2 rounded-full ${connected ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`}></div>
-                        <span className={`text-xs font-medium ${connected ? 'text-green-400' : 'text-red-400'}`}>
-                            {connected ? 'Live Feed Connected' : 'Disconnected'}
-                        </span>
+                    
+                    <div className="h-12 w-px bg-white/5 mx-2" />
+                    
+                    <div className="flex flex-col items-end">
+                        <div className="flex items-center space-x-2.5 mb-2">
+                            <div className={`w-2 h-2 rounded-full ${connected ? 'bg-brand-cyan shadow-[0_0_8px_#00f0ff] animate-pulse' : 'bg-brand-red shadow-[0_0_8px_#ff2a2e]'}`} />
+                            <span className={`text-[10px] font-black uppercase tracking-widest ${connected ? 'text-brand-cyan' : 'text-brand-red'}`}>
+                                {connected ? 'Grid Connected' : 'Sync Failed'}
+                            </span>
+                        </div>
+                        <span className="text-[10px] font-mono text-slate-500 font-bold tracking-tighter uppercase">ID: SV-CORE-09-RT</span>
                     </div>
                 </div>
             </div>
+
+            {/* Tactical Metrics Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                {(stats || []).map((stat) => (
+                {stats.map((stat) => (
                     <motion.div
                         key={stat.name}
-                        whileHover={{ scale: 1.02 }}
-                        className={`glass-panel p-6 relative overflow-hidden group transition-all duration-300 border-b-2 ${
-                            stat.alert ? 'border-b-brand-red shadow-[0_10px_30px_-15px_rgba(255,42,42,0.3)]' : 'border-b-slate-700'
-                        }`}
+                        whileHover={{ y: -5 }}
+                        className="glass-panel p-7 group cursor-pointer relative overflow-hidden shimmer-effect"
                     >
-                        <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-                            <stat.icon className={`w-20 h-20 ${stat.color}`} />
-                        </div>
-                        <div className="relative z-10 flex flex-col h-full justify-between">
-                            <h3 className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em]">{stat.name}</h3>
-                            <div className="mt-4 flex items-baseline justify-between">
-                                <AnimatePresence mode="wait">
-                                    <motion.span
-                                        key={stat.value}
-                                        initial={{ opacity: 0, scale: 0.9 }}
-                                        animate={{ opacity: 1, scale: 1 }}
-                                        exit={{ opacity: 0, scale: 1.1 }}
-                                        className={`text-4xl font-black tracking-tighter ${stat.alert ? 'text-white' : 'text-slate-200'}`}
-                                    >
-                                        {stat.value}
-                                    </motion.span>
-                                </AnimatePresence>
-                                <div className={`px-2 py-1 rounded text-[10px] font-bold uppercase tracking-widest flex items-center ${stat.alert ? 'bg-brand-red text-white' : 'bg-slate-800 text-slate-400'}`}>
-                                    {stat.alert ? <AlertTriangle className="w-3 h-3 mr-1" /> : <ShieldCheck className="w-3 h-3 mr-1" />}
-                                    {stat.alert ? 'Warning' : 'Verified'}
-                                </div>
+                        <div className={`absolute top-0 right-0 w-32 h-32 bg-${stat.color}/5 blur-[60px] rounded-full pointer-events-none group-hover:bg-${stat.color}/10 transition-colors duration-500`} />
+                        
+                        <div className="flex justify-between items-start mb-8">
+                            <div className={`w-14 h-14 bg-slate-950 rounded-[22px] flex items-center justify-center border border-white/5 group-hover:border-${stat.color}/30 transition-all duration-300 shadow-2xl relative overflow-hidden`}>
+                                <div className={`absolute inset-0 bg-${stat.color}/20 opacity-0 group-hover:opacity-100 transition-opacity`} />
+                                <stat.icon className={`w-6.5 h-6.5 text-${stat.color} group-hover:scale-110 transition-transform relative z-10`} />
                             </div>
+                            <div className="text-right">
+                                <span className={`text-[11px] font-black ${stat.alert ? 'text-brand-red' : 'text-brand-cyan'} font-mono`}>{stat.trend}</span>
+                                <div className="h-0.5 w-10 bg-white/5 mt-1.5 ml-auto" />
+                            </div>
+                        </div>
+
+                        <div className="space-y-1">
+                            <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">{stat.name}</p>
+                            <h3 className="text-4xl font-black text-white tracking-tighter font-heading truncate group-hover:text-brand-cyan transition-colors">
+                                {stat.value}
+                            </h3>
+                            <p className="text-[9px] text-slate-600 font-bold uppercase tracking-tight mt-3 opacity-0 group-hover:opacity-100 transition-opacity translate-y-2 group-hover:translate-y-0 duration-300">
+                                {stat.desc}
+                            </p>
                         </div>
                     </motion.div>
                 ))}
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                {/* Map & Edge Status Main Area */}
-                <div className="lg:col-span-2 space-y-6">
-
-                    <div className="glass-panel p-6 h-96 flex flex-col relative overflow-hidden">
-                        <h3 className="text-sm font-medium text-slate-400 uppercase tracking-wider mb-4 flex justify-between">
-                            Real-Time Global Threat Map
-                            <span className="text-xs bg-slate-900 px-2 py-1 rounded border border-slate-700 text-brand-cyan">Live Socket</span>
-                        </h3>
-
-                        <div className="flex-1 bg-slate-900/50 rounded-lg border border-slate-800 relative">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
+                {/* Visual Intelligence Section */}
+                <div className="lg:col-span-2 space-y-10">
+                    <div className="glass-panel p-10 min-h-[550px] flex flex-col relative overflow-hidden group">
+                        <div className="accent-glow top-0 right-0 w-[500px] h-[500px] bg-brand-cyan/5 blur-[150px]" />
+                        
+                        <div className="flex items-center justify-between mb-10 relative z-10">
+                            <div className="flex items-center space-x-4">
+                                <div className="p-2.5 bg-brand-cyan/10 rounded-xl border border-brand-cyan/20">
+                                    <Globe className="w-5.5 h-5.5 text-brand-cyan" />
+                                </div>
+                                <div>
+                                    <h2 className="text-2xl font-black text-white uppercase italic tracking-tighter font-heading">Tactical Topology</h2>
+                                    <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-0.5">Global Adversary Heatmap</p>
+                                </div>
+                            </div>
+                            <div className="flex items-center space-x-2.5 bg-slate-950/80 p-2 rounded-2xl border border-white/5">
+                                <button className="px-4 py-2 rounded-xl text-[10px] font-black bg-brand-cyan text-slate-950 uppercase tracking-widest transition-all shadow-[0_0_15px_#00f0ff40]">Neural</button>
+                                <button className="px-4 py-2 rounded-xl text-[10px] font-black text-slate-500 hover:text-white uppercase tracking-widest transition-all">Satellite</button>
+                            </div>
+                        </div>
+                        
+                        <div className="flex-1 bg-slate-950/50 rounded-[40px] border border-white/10 relative overflow-hidden">
                             <ThreatMap markers={mapMarkers} />
                         </div>
                     </div>
 
-                    <div className="glass-panel p-6">
-                        <h3 className="text-sm font-medium text-slate-400 uppercase tracking-wider mb-4">Edge Node Status (Live)</h3>
-                        <div className="flex flex-col space-y-4">
-                            {data?.nodes?.map((node, i) => (
-                                <div key={node.id} className="flex items-center">
-                                    <div className="w-32 text-sm text-slate-300 font-medium">
-                                        {i === 0 ? 'Raspberry Pi' : i === 1 ? 'NVIDIA Jetson' : 'Edge Server'}
-                                    </div>
-                                    <div className="flex-1 ml-4 relative">
-                                        <div className="h-2 w-full bg-slate-800 rounded-full overflow-hidden">
-                                            <motion.div
-                                                initial={false}
-                                                animate={{ width: `${node.cpu}%` }}
-                                                transition={{ duration: 0.5 }}
-                                                className={`h-full ${node.cpu > 80 ? 'bg-brand-red' : node.cpu > 60 ? 'bg-brand-orange' : 'bg-green-500'}`}
-                                            />
+                    <div className="glass-panel p-10 relative overflow-hidden group">
+                        <div className="absolute inset-0 cyber-grid opacity-10 pointer-events-none" />
+                        <div className="flex items-center space-x-4 mb-10">
+                            <div className="p-2.5 bg-brand-orange/10 rounded-xl border border-brand-orange/20">
+                                <Cpu className="w-5.5 h-5.5 text-brand-orange" />
+                            </div>
+                            <div>
+                                <h3 className="text-xl font-black text-white uppercase italic tracking-tighter font-heading">Edge Compute Hubs</h3>
+                                <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-0.5">Distributed Neural clusters</p>
+                            </div>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+                            {(data?.nodes || [1, 2]).map((node, i) => (
+                                <div key={i} className="space-y-5 group/node">
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex items-center space-x-4">
+                                            <div className="w-10 h-10 rounded-xl bg-slate-900 flex items-center justify-center border border-white/10 group-hover/node:border-brand-orange/30 transition-colors">
+                                                <Target className="w-5 h-5 text-slate-500 group-hover/node:text-brand-orange transition-colors" />
+                                            </div>
+                                            <div className="flex flex-col">
+                                                <span className="text-xs font-black text-white uppercase tracking-tight">
+                                                    {i === 0 ? 'COBALT_ALPHA_01' : 'NEON_BETA_02'}
+                                                </span>
+                                                <span className="text-[9px] text-slate-500 font-black uppercase tracking-widest">Active Edge</span>
+                                            </div>
+                                        </div>
+                                        <div className="text-right">
+                                            <span className="text-xs font-mono text-brand-cyan font-black">
+                                                {typeof node === 'object' && 'latency' in node ? `${node.latency}ms` : '9.45ms'}
+                                            </span>
                                         </div>
                                     </div>
-                                    <div className={`ml-4 text-xs font-mono w-16 text-right ${node.cpu > 80 ? 'text-brand-red' : 'text-green-400'}`}>
-                                        {node.latency}ms
+                                    <div className="relative h-2 w-full bg-slate-950 rounded-full overflow-hidden border border-white/5">
+                                        <motion.div
+                                            initial={{ width: 0 }}
+                                            animate={{ width: `${typeof node === 'object' && 'cpu' in node ? node.cpu : (i === 0 ? 78 : 42)}%` }}
+                                            className={`h-full bg-gradient-to-r ${i === 0 ? 'from-brand-orange to-brand-red' : 'from-brand-cyan to-blue-500'} shadow-[0_0_10px_rgba(255,139,0,0.3)]`}
+                                        />
                                     </div>
                                 </div>
-                            )) || <div className="text-xs text-slate-500">Waiting for node metrics...</div>}
+                            ))}
                         </div>
                     </div>
-
                 </div>
 
-                {/* Alerts Feed */}
-                <div className="glass-panel p-6 flex flex-col h-[calc(100vh-12rem)] sticky top-6">
-                    <div className="flex items-center justify-between mb-4">
-                        <h3 className="text-sm font-medium text-slate-400 uppercase tracking-wider">Alerts Feed</h3>
-                        {alerts.length > 0 && <span className="bg-brand-red/10 text-brand-red text-xs px-2 py-0.5 rounded-full border border-brand-red/20">{alerts.length} New</span>}
+                {/* Operations Intel Feed */}
+                <div className="glass-panel p-10 flex flex-col h-[850px] relative overflow-hidden group">
+                    <div className="accent-glow -bottom-20 -left-20 w-[400px] h-[400px] bg-brand-red/5 blur-[120px]" />
+                    
+                    <div className="flex items-center justify-between mb-10 relative z-10">
+                        <div className="flex items-center space-x-4">
+                            <div className="p-2.5 bg-brand-red/10 rounded-xl border border-brand-red/20 shadow-[0_0_15px_rgba(255,42,46,0.1)]">
+                                <ShieldAlert className="w-5.5 h-5.5 text-brand-red" />
+                            </div>
+                            <h3 className="text-2xl font-black text-white uppercase italic tracking-tighter font-heading">Breach Feed</h3>
+                        </div>
+                        {alerts.length > 0 && (
+                            <div className="flex items-center space-x-2 px-3 py-1.5 bg-brand-red/10 border border-brand-red/20 rounded-full">
+                                <span className="w-1.5 h-1.5 rounded-full bg-brand-red animate-ping" />
+                                <span className="text-[10px] font-black text-brand-red uppercase tracking-widest">{alerts.length} NEW</span>
+                            </div>
+                        )}
                     </div>
 
-                    <div className="flex-1 overflow-y-auto space-y-3 pr-2 -mr-2">
-                        <AnimatePresence>
-                            {recentAlerts.map((alert) => (
+                    <div className="flex-1 overflow-y-auto space-y-5 pr-3 custom-scrollbar relative z-10">
+                        <AnimatePresence mode="popLayout">
+                            {alerts.slice(0, 15).map((alert, idx) => (
                                 <motion.div
-                                    key={alert.id}
+                                    key={alert.id || idx}
                                     initial={{ opacity: 0, x: 20 }}
                                     animate={{ opacity: 1, x: 0 }}
-                                    exit={{ opacity: 0, height: 0 }}
-                                    className="p-3 bg-slate-900/50 border border-slate-700/50 rounded-lg shadow-md"
+                                    className="p-5 bg-slate-900/40 border border-white/5 rounded-[28px] hover:border-brand-red/30 transition-all group/alert cursor-pointer relative overflow-hidden active:scale-[0.98]"
                                 >
-                                    <div className="flex items-start justify-between">
-                                        <div className="flex items-center">
-                                            {alert.severity === 'high' && <ShieldAlert className="w-4 h-4 text-brand-red mr-2" />}
-                                            {alert.severity === 'medium' && <AlertTriangle className="w-4 h-4 text-brand-orange mr-2" />}
-                                            {alert.severity === 'low' && <Activity className="w-4 h-4 text-brand-cyan mr-2" />}
-                                            <span className={`text-[10px] font-bold uppercase tracking-wider ${alert.severity === 'high' ? 'text-brand-red' :
-                                                alert.severity === 'medium' ? 'text-brand-orange' : 'text-brand-cyan'
-                                                }`}>{alert.type}</span>
+                                    <div className="absolute top-0 left-0 w-1.5 h-full bg-brand-red opacity-0 group-hover/alert:opacity-100 transition-opacity" />
+                                    <div className="flex items-start justify-between mb-4">
+                                        <div className="flex items-center space-x-3">
+                                            <div className={`p-2 rounded-xl bg-slate-950 border border-white/5 transition-colors ${
+                                                alert.severity === 'high' ? 'text-brand-red group-hover/alert:border-brand-red/20' : 'text-brand-cyan group-hover/alert:border-brand-cyan/20'
+                                            }`}>
+                                                <Target className="w-4 h-4" />
+                                            </div>
+                                            <div className="flex flex-col">
+                                                <span className={`text-[10px] font-black uppercase tracking-widest ${
+                                                    alert.severity === 'high' ? 'text-brand-red' : 'text-brand-cyan'
+                                                }`}>{alert.type || 'PROTOCOL_BREACH'}</span>
+                                                <span className="text-[9px] text-slate-500 font-mono font-bold uppercase">{alert.time || 'T+0:02ms'}</span>
+                                            </div>
                                         </div>
-                                        <span className="text-[10px] text-slate-500 font-mono">{alert.time}</span>
                                     </div>
-                                    <p className="mt-2 text-sm text-slate-200">{alert.title}</p>
-                                    <p className="mt-1 text-xs text-slate-500">{alert.source}</p>
+                                    <p className="text-[13px] text-slate-200 font-bold leading-relaxed font-heading group-hover/alert:text-white transition-colors">
+                                        {alert.title || alert.message}
+                                    </p>
+                                    <div className="mt-5 pt-4 border-t border-white/5 flex items-center justify-between">
+                                        <div className="flex items-center space-x-2">
+                                            <Cpu className="w-3 h-3 text-slate-600" />
+                                            <span className="text-[9px] text-slate-500 font-mono uppercase truncate max-w-[120px]">{alert.source || 'CLUSTER_01'}</span>
+                                        </div>
+                                        <span className="text-[10px] font-black text-slate-400 group-hover/alert:text-brand-cyan transition-colors uppercase tracking-widest">Detail</span>
+                                    </div>
                                 </motion.div>
                             ))}
-                            {recentAlerts.length === 0 && (
-                                <div className="text-center py-10 text-slate-500 text-sm italic">
-                                    Awaiting cryptographically signed threat sequences...
-                                </div>
-                            )}
                         </AnimatePresence>
                     </div>
 
-                    {/* Threat Impact Gauge */}
-                    <div className="mt-6 pt-6 border-t border-slate-800">
-                        <div className="flex justify-between items-end mb-4">
-                            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em]">Deployment Readiness</span>
-                            <span className="text-xl font-black text-brand-cyan">98.4<span className="text-xs font-normal text-slate-500 ml-1">%</span></span>
+                    <div className="mt-8 pt-10 border-t border-white/5 space-y-8 relative z-10">
+                        <div className="space-y-4">
+                            <div className="flex justify-between items-end">
+                                <div className="flex flex-col">
+                                    <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">Neural Topology Sync</span>
+                                    <span className="text-[9px] text-slate-600 font-bold uppercase tracking-tight">Active Handshake Protocol</span>
+                                </div>
+                                <span className="text-2xl font-black text-brand-cyan font-heading tracking-tighter">99.2%</span>
+                            </div>
+                            <div className="h-2 w-full bg-slate-950 rounded-full overflow-hidden border border-white/5 relative shadow-inner">
+                                <motion.div animate={{ width: '99.2%' }} className="h-full bg-gradient-to-r from-brand-cyan to-blue-600" />
+                            </div>
                         </div>
-                        <div className="h-2 w-full bg-slate-900 rounded-full overflow-hidden border border-slate-800">
-                            <motion.div 
-                                initial={{ width: 0 }}
-                                animate={{ width: '98.4%' }}
-                                className="h-full bg-gradient-to-r from-brand-cyan to-blue-500 shadow-[0_0_10px_#00f0ff50]"
-                            />
-                        </div>
-                        <p className="mt-3 text-[10px] text-slate-500 font-mono leading-tight">
-                            SYSTEM IDENTIFIER: SECURE-VISION-SENTINEL-X-01<br/>
-                            VULNERABILITY PATCH: 2026.03.13-A
-                        </p>
-                    </div>
 
-                    <div className="mt-4">
-                        <button className="w-full py-2.5 bg-slate-100 text-slate-950 hover:bg-white transition-all text-xs font-black uppercase tracking-widest rounded-lg shadow-xl">Generate Forensic Report</button>
+                        <button 
+                            className="w-full py-5 bg-white text-slate-950 hover:bg-brand-cyan transition-all text-xs font-black uppercase tracking-[0.2em] rounded-[24px] shadow-2xl flex items-center justify-center group active:scale-[0.97]"
+                        >
+                            Generate Forensics Report
+                            <TrendingUp className="w-4 h-4 ml-3 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
+                        </button>
                     </div>
                 </div>
             </div>
         </div>
-    )
+    );
 }

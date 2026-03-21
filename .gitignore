@@ -1,161 +1,35 @@
-# ============================================================
-#  SecureVision AI — .gitignore
-# ============================================================
-
-# ------------------------------------------------------------
-# Environment & Secrets
-# ------------------------------------------------------------
-.env
-.env.*
-!.env.example
-*.pem
-*.key
-*.cert
-*.crt
-secrets/
-
-# ------------------------------------------------------------
 # Python
-# ------------------------------------------------------------
 __pycache__/
 *.py[cod]
 *$py.class
-*.so
-*.egg
-*.egg-info/
-dist/
-build/
-eggs/
-parts/
-var/
-sdist/
-develop-eggs/
-.installed.cfg
-lib/
-lib64/
-MANIFEST
-
-# Virtual environments
 .venv/
 venv/
-env/
 ENV/
-.env/
-backend/venv/
+env/
+.env
 
-# pytest / testing
-.pytest_cache/
-.coverage
-htmlcov/
-.tox/
-nosetests.xml
-coverage.xml
-*.cover
+# Models & Data
+backend/app/models/*.pkl
+backend/app/models/*.h5
+backend/app/models/*.pt
+backend/app/data/*.csv
+backend/app/data/*.json
+!backend/app/models/.gitkeep
+!backend/app/data/.gitkeep
 
-# mypy / type checkers
-.mypy_cache/
-.dmypy.json
-dmypy.json
-.pyre/
-
-# Jupyter / IPython
-.ipynb_checkpoints/
-profile_default/
-ipython_config.py
-
-# pyinstaller
-*.manifest
-*.spec
-
-# ------------------------------------------------------------
-# Node.js / React / Vite
-# ------------------------------------------------------------
-node_modules/
-frontend/node_modules/
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
-lerna-debug.log*
-
-# Build output
-frontend/dist/
-frontend/dist-ssr/
-frontend/.vite/
-*.local
-
-# TypeScript build info
-*.tsbuildinfo
-
-# ------------------------------------------------------------
 # Logs
-# ------------------------------------------------------------
-logs/
+backend/app/logs/*.log
+backend/app/logs/*.txt
 *.log
-backend/logs/
-server_log.txt
 
-# ------------------------------------------------------------
-# ML Models & Large Data Files
-# ------------------------------------------------------------
-# Uncomment to ignore large model files if using Git LFS instead:
-# backend/models/*.pkl
-# backend/models/*.h5
-# backend/models/*.pt
-# backend/models/*.onnx
-# backend/data/*.csv
-
-# ------------------------------------------------------------
-# Docker
-# ------------------------------------------------------------
-.docker/
-
-# ------------------------------------------------------------
-# OS & Editor
-# ------------------------------------------------------------
-# macOS
+# Node
+node_modules/
+dist/
+build/
 .DS_Store
-.AppleDouble
-.LSOverride
-._*
 
-# Windows
-Thumbs.db
-Thumbs.db:encdata
-ehthumbs.db
-Desktop.ini
-$RECYCLE.BIN/
-
-# Linux
-*~
-
-# VS Code
+# IDE
 .vscode/
-!.vscode/extensions.json
-!.vscode/settings.json
-
-# JetBrains IDEs
 .idea/
-*.iml
-*.iws
-*.ipr
-
-# Vim
-*.swp
-*.swo
-*.swn
-
-# Sublime Text
-*.tmlanguage.cache
-*.tmPreferences.cache
-*.stTheme.cache
-*.sublime-workspace
-*.sublime-project
-
-# ------------------------------------------------------------
-# Misc
-# ------------------------------------------------------------
-*.bak
-*.tmp
-*.temp
-.cache/
+.gemini/
+.agents/
