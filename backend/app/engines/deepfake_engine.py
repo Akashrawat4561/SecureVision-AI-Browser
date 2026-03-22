@@ -152,14 +152,12 @@ def _safe(fn, *args, neutral: float = 0.5, label: str = "?", **kwargs) -> float:
 #   Biometric combined:         real ≈ 0.25-0.45, AI ≈ 0.55-0.80
 #                               → centre=0.50, spread=0.12
 #
-#   FFT spectral:               high noise — compress toward centre
-#                               → centre=0.50, spread=0.20  (gentle stretch)
-#
+#   High spread reduces overconfidence.
 _CALIB: dict = {
-    "clip":       (0.48, 0.08),   # Reduce CLIP dominance
-    "biometric":  (0.45, 0.08),   
-    "spectral":   (0.46, 0.12),   
-    "perceptual": (0.50, 0.10),   # NEW Perceptual Anomaly calibration
+    "clip":       (0.50, 0.15),   # Weak signal -> wider spread (less confident)
+    "biometric":  (0.40, 0.20),   # Wider spread (relative deviation)
+    "spectral":   (0.45, 0.18),   # Moderate stretch
+    "perceptual": (0.50, 0.15),   # Subjective -> wider spread
 }
 
 
@@ -621,15 +619,6 @@ class BiometricSignalAnalyser:
 # GAN frequency fingerprint — published in FaceForensics++ (Rossler et al. 2019)
 # ──────────────────────────────────────────────────────────────────────────────
 class SpectralForensics:
-    """
-    GAN upsampling creates checkerboard artefacts visible in FFT magnitude:
-    - Rossler et al. FaceForensics++ (2019) demonstrates spectral GAN fingerprints.
-    - Diffusion models produce different but detectable regularisation patterns.
-
-    Limitation: PNG AI images from modern diffusion may have weak FFT signature.
-    Use as corroborating signal, not primary.
-    """
-
     def fft_score(self, face_np: np.ndarray) -> float:
         try:
             gray = cv2.cvtColor(face_np, cv2.COLOR_RGB2GRAY).astype(np.float64)
@@ -638,16 +627,11 @@ class SpectralForensics:
             cy, cx = h // 2, w // 2
             hf   = mag[cy - h//4:cy + h//4, cx - w//4:cx + w//4]
             # Periodicity: GAN checkerboard energy appears as variance in row/col means
-            period = float(
-                (np.var(np.mean(hf, axis=1)) + np.var(np.mean(hf, axis=0))) / 2.0
-            )
+            period = float((np.var(np.mean(hf, axis=1)) + np.var(np.mean(hf, axis=0))) / 2.0)
             # Spectral flatness: AI → too uniform
             flatness = float(np.std(mag) / (np.mean(mag) + 1e-8))
             # Combine: high periodicity or low flatness → higher fake score
-            return float(np.clip(
-                0.55 * math.tanh(period / 25.0) + 0.45 * (1.0 - math.tanh(flatness * 1.2)),
-                0.0, 1.0
-            ))
+            return float(np.clip(0.55 * math.tanh(period / 25.0) + 0.45 * (1.0 - math.tanh(flatness * 1.2)), 0.0, 1.0))
         except Exception:
             return 0.5
 
@@ -661,10 +645,28 @@ class SpectralForensics:
         except Exception:
             return 0.5
 
+    def patch_level_frequency(self, face_np: np.ndarray) -> float:
+        """Patch-level frequency inconsistency (catch modern diffusion models)."""
+        try:
+            gray = cv2.cvtColor(face_np, cv2.COLOR_RGB2GRAY).astype(np.float64)
+            h, w = gray.shape
+            p = min(h, w) // 4
+            patch_energies = []
+            for y in range(0, h-p, p):
+                for x in range(0, w-p, p):
+                    patch = gray[y:y+p, x:x+p]
+                    mag = np.abs(np.fft.fftshift(np.fft.fft2(patch)))
+                    patch_energies.append(np.mean(mag))
+            if not patch_energies: return 0.5
+            cv = float(np.std(patch_energies) / (np.mean(patch_energies) + 1e-8))
+            return float(np.clip(1.0 - math.tanh(cv * 2.0), 0.0, 1.0))
+        except Exception: return 0.5
+
     def combined(self, face_np: np.ndarray, orig_np: np.ndarray) -> float:
-        fft = _safe(self.fft_score, face_np,       label="spec:fft")
-        ela = _safe(self.ela_score, face_np, orig_np, label="spec:ela")
-        return float(fft * 0.75 + ela * 0.25)
+        fft   = _safe(self.fft_score, face_np,       label="spec:fft")
+        ela   = _safe(self.ela_score, face_np, orig_np, label="spec:ela")
+        patch = _safe(self.patch_level_frequency, face_np, label="spec:patch")
+        return float(fft * 0.40 + patch * 0.40 + ela * 0.20)
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -901,12 +903,12 @@ class DeepfakeEngine:
       - Score distribution: logged per inference for calibration debugging
     """
 
-    # Weights on calibrated scores — v5.0 Master Fusion
+    # Tiered Trust Weights
     W = {
-        "clip":       0.30, 
-        "biometric":  0.25, 
-        "spectral":   0.20, 
-        "perceptual": 0.25
+        "clip":       0.15,  # Tier 2
+        "biometric":  0.45,  # Tier 1
+        "spectral":   0.40,  # Tier 1
+        "perceptual": 0.0    # Tier 3 (gated dynamically)
     }
 
 
@@ -985,13 +987,16 @@ class DeepfakeEngine:
         # ── Temporal (video) ─────────────────────────────────────────────────
         temporal_score = 0.5
         gray_frames    = []
+        frame_scores   = []
         if frames_bytes_list and len(frames_bytes_list) > 1:
             fsub = []
             for fb in frames_bytes_list[:8]:
                 try:
                     fp     = Image.open(io.BytesIO(fb)).convert("RGB")
                     f_face, _ = self.face_ext.extract(fp)
-                    fsub.append(_safe(self.clip.raw_score, f_face, label="frame_clip"))
+                    raw_s = _safe(self.clip.raw_score, f_face, label="frame_clip")
+                    fsub.append(raw_s)
+                    frame_scores.append(round(_calibrate(raw_s, "clip"), 4))
                     gray_frames.append(
                         cv2.cvtColor(np.array(fp.resize((224, 224))), cv2.COLOR_RGB2GRAY)
                     )
@@ -1005,49 +1010,51 @@ class DeepfakeEngine:
         ens = _ensemble_four_signal(clip_cal, bio_cal, spec_cal, per_cal)
 
 
-        # ── Weighted fusion (DYNAMIC: redistribute weights if models missing) ─
+        # ── Weighted fusion (Tiered Trust Architecture) ───────────────────────
+        risk_flags = []
+        
+        # Check adversarial robustness via blur proxy
+        blurred_face = cv2.GaussianBlur(face_np, (5, 5), 0)
+        bio_blur = self.biometric.combined_score(blurred_face, is_jpeg=jpeg)["biometric_combined"]
+        if abs(bio_cal - _calibrate(bio_blur, "biometric")) > 0.3:
+            risk_flags.append("high_adversarial_vulnerability")
+
+        # Dynamic Perceptual Gating
         active_weights = self.W.copy()
         if not HAS_CLIP or not self.clip.loaded:
             active_weights["clip"] = 0.0
-        
+
+        core_confidence = float(np.mean([abs(bio_cal - 0.5), abs(spec_cal - 0.5)])) * 2.0
+        # If Tier 1 signals are borderline (low confidence), gate in perceptual
+        if core_confidence < 0.4:
+            active_weights["perceptual"] = 0.15
+            active_weights["biometric"] -= 0.075
+            active_weights["spectral"] -= 0.075
+            risk_flags.append("perceptual_module_activated")
+
         weight_sum = sum(active_weights.values())
-        if weight_sum > 0:
-            # Re-normalise weights so they sum to 1.0 even if signals missing
-            norm_w = {k: v / weight_sum for k, v in active_weights.items()}
-            base_score = (
-                clip_cal * norm_w.get("clip", 0)       +
-                bio_cal  * norm_w.get("biometric", 0)  +
-                spec_cal * norm_w.get("spectral", 0)   +
-                per_cal  * norm_w.get("perceptual", 0)
-            )
-        else:
-            base_score = float(np.mean([bio_cal, spec_cal, per_cal]))
+        norm_w = {k: v / weight_sum for k, v in active_weights.items()} if weight_sum > 0 else {}
+        
+        base_score = (
+            clip_cal * norm_w.get("clip", 0)       +
+            bio_cal  * norm_w.get("biometric", 0)  +
+            spec_cal * norm_w.get("spectral", 0)   +
+            per_cal  * norm_w.get("perceptual", 0)
+        )
 
-
-        # Temporal addon for video (small weight, does not shift classification much alone)
         if frames_bytes_list and len(frames_bytes_list) > 1:
             base_score = base_score * 0.90 + temporal_score * 0.10
 
-        # Consensus override: if all 3 signals (or all active ones) unanimously disagree with base,
-        # and they are strong signals, flip toward consensus
-        if ens["agreement"] == "UNANIMOUS" and ens["mean_strength"] > 0.40:
-            if ens["consensus_fake"] and base_score < 0.50:
-                base_score = max(base_score, 0.60)
-            elif not ens["consensus_fake"] and base_score > 0.50:
-                base_score = min(base_score, 0.40)
-        
-        # High-Certainty Alert & Strong Signal Override (v5.0 Fix)
-        # if any signal > 0.80, final score boosted to at least 0.65 (FLAGGED)
-        max_signal = max(
-            clip_cal if (HAS_CLIP and self.clip.loaded) else 0, 
-            bio_cal, spec_cal, per_cal
-        )
-        if max_signal > 0.80:
-            base_score = max(base_score, 0.65)
-        
-        if max_signal > 0.90:
-            base_score = base_score * 0.3 + max_signal * 0.7
+        # Consistency Check (Force UNCERTAIN if Tier 1 signals strongly disagree)
+        if abs(bio_cal - spec_cal) > 0.5:
+            risk_flags.append("tier1_signal_conflict")
+            base_score = 0.50  # Force into UNCERTAIN range
 
+        # High-Certainty Boost (Requires 2+ signals to be confident)
+        active_sigs = [s for s in [clip_cal if HAS_CLIP else 0, bio_cal, spec_cal, per_cal] if s > 0.75]
+        if len(active_sigs) >= 2:
+            base_score = max(base_score, 0.65)
+            risk_flags.append("multi_signal_consensus_boost")
 
         final_score = round(float(np.clip(base_score, 0.0, 1.0)), 4)
         score_logger.log("final", final_score, final_score)
@@ -1063,6 +1070,8 @@ class DeepfakeEngine:
             temporal_score=temporal_score,
             jpeg=jpeg,
             confidence=confidence,
+            risk_flags=risk_flags,
+            frame_scores=frame_scores,
         ), None
 
 
@@ -1071,7 +1080,7 @@ class DeepfakeEngine:
                       bio_dict, face_detected, media_type,
                       ens, effnet_h, vit_h,
                       raw=None, temporal_score=0.5, jpeg=False,
-                      confidence="MEDIUM") -> dict:
+                      confidence="MEDIUM", risk_flags=None, frame_scores=None) -> dict:
 
         prediction, conf = _classify(final_score)
         return {
@@ -1083,8 +1092,8 @@ class DeepfakeEngine:
             "type":           media_type,
             "face_detected":  face_detected,
             "input_format":   "JPEG" if jpeg else "OTHER",
+            "risk_flags":     risk_flags or [],
 
-            # ─── Validated signals (calibrated) ──────────────────────────────
             "validated_signals": {
                 "clip_semantic":      round(float(clip_cal), 4),
                 "biometric_suite":    round(float(bio_cal),  4),
@@ -1092,6 +1101,7 @@ class DeepfakeEngine:
                 "perceptual_anomaly": round(float(per_cal),  4),
                 "temporal_drift":     round(float(temporal_score), 4),
             },
+            "frame_scores": frame_scores or [],
 
 
             # ─── Raw (pre-calibration) for debugging ─────────────────────────

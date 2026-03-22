@@ -67,8 +67,6 @@ class AnomalyEngine:
         
         # Convert to more user-friendly format
         results = []
-        # Convert to more user-friendly format
-        results = []
         for i in range(len(df)):
             is_anomaly = bool(preds[i] == -1)
             # Normalize score to 0-1 (higher score = more anomalous for our UI)
@@ -91,5 +89,19 @@ class AnomalyEngine:
         results, err = self.predict_dataframe(df)
         if err: return None
         return results[0]
+
+    def get_stream_sample(self):
+        if not hasattr(self, '_stream_df') or self._stream_df is None:
+            if not os.path.exists(DATA_PATH): return None
+            self._stream_df = pd.read_csv(DATA_PATH)
+            self._stream_idx = 0
+            
+            # Optionally shuffle the data to make the stream seem more random but realistic
+            self._stream_df = self._stream_df.sample(frac=1, random_state=42).reset_index(drop=True)
+            
+        if len(self._stream_df) == 0: return None
+        row = self._stream_df.iloc[self._stream_idx]
+        self._stream_idx = (self._stream_idx + 1) % len(self._stream_df)
+        return float(row['src_bytes']), float(row['dst_bytes']), int(row['count']), int(row['srv_count'])
 
 anomaly_engine = AnomalyEngine()
