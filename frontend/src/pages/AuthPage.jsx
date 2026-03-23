@@ -1,36 +1,59 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate, Link } from 'react-router-dom';
-import { Shield, Lock, Mail, ArrowRight, Cpu, Zap } from 'lucide-react';
+import { Shield, Lock, Mail, ArrowRight, Cpu, Zap, User, CheckCircle2, XCircle } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import DynamicButton from '../components/common/DynamicButton';
 
 const AuthPage = ({ mode }) => {
     const [email, setEmail] = useState('');
+    const [fullName, setFullName] = useState('');
     const [password, setPassword] = useState('');
+    const [confirmPassword, setConfirmPassword] = useState('');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const navigate = useNavigate();
     const { login } = useAuth();
+
+    const getPasswordStrength = (pwd) => {
+        if (!pwd) return 0;
+        let strength = 0;
+        if (pwd.length > 7) strength += 25;
+        if (/[A-Z]/.test(pwd)) strength += 25;
+        if (/[0-9]/.test(pwd)) strength += 25;
+        if (/[^A-Za-z0-9]/.test(pwd)) strength += 25;
+        return strength;
+    };
+
+    const passwordStrength = getPasswordStrength(password);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         setLoading(true);
         setError('');
 
+        if (mode === 'register' && password !== confirmPassword) {
+            setError('Passwords do not match');
+            setLoading(false);
+            return;
+        }
+
         try {
             const endpoint = mode === 'login' ? '/api/login' : '/api/register';
+            const body = mode === 'login' 
+                ? { email, password } 
+                : { email, password, full_name: fullName };
+
             const response = await fetch(`http://localhost:8000${endpoint}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email, password }),
+                body: JSON.stringify(body),
             });
 
             const data = await response.json();
             if (!response.ok) throw new Error(data.detail || 'Authentication failed');
 
             if (mode === 'register') {
-                // Registration successful — now auto-login to get the token
                 const loginRes = await fetch('http://localhost:8000/api/login', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -68,16 +91,37 @@ const AuthPage = ({ mode }) => {
                             <Shield className="w-7 h-7 text-brand-cyan group-hover:scale-110 transition-transform" />
                         </div>
                         <h1 className="text-3xl font-black text-white uppercase italic tracking-tighter font-heading text-center">
-                            {mode === 'login' ? 'System Access' : 'New Deployment'}
+                            {mode === 'login' ? 'Login' : 'Create Account'}
                         </h1>
                         <p className="text-[10px] text-slate-500 uppercase tracking-[0.3em] font-black mt-3 flex items-center">
-                            <Zap className="w-3 h-3 mr-2 text-brand-orange" /> Forensic Vault v2.4.1
+                            <Zap className="w-3 h-3 mr-2 text-brand-orange" /> SecureVision AI v2.4.1
                         </p>
                     </div>
 
                     <form onSubmit={handleSubmit} className="space-y-6">
+                        {mode === 'register' && (
+                            <motion.div 
+                                initial={{ opacity: 0, y: -10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                className="space-y-2"
+                            >
+                                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Full Name</label>
+                                <div className="relative group">
+                                    <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 group-focus-within:text-brand-purple transition-colors" />
+                                    <input
+                                        required
+                                        type="text"
+                                        value={fullName}
+                                        onChange={(e) => setFullName(e.target.value)}
+                                        placeholder="Enter your name"
+                                        className="w-full bg-slate-950/80 border border-white/5 rounded-2xl py-4 pl-12 pr-4 text-sm text-slate-200 focus:border-brand-purple/40 focus:bg-slate-950 transition-all placeholder:text-slate-700 font-medium"
+                                    />
+                                </div>
+                            </motion.div>
+                        )}
+
                         <div className="space-y-2">
-                            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Terminal Identifier</label>
+                            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Email Address</label>
                             <div className="relative group">
                                 <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 group-focus-within:text-brand-cyan transition-colors" />
                                 <input
@@ -85,14 +129,14 @@ const AuthPage = ({ mode }) => {
                                     type="email"
                                     value={email}
                                     onChange={(e) => setEmail(e.target.value)}
-                                    placeholder="operator@securevision.ai"
+                                    placeholder="your@email.com"
                                     className="w-full bg-slate-950/80 border border-white/5 rounded-2xl py-4 pl-12 pr-4 text-sm text-slate-200 focus:border-brand-cyan/40 focus:bg-slate-950 transition-all placeholder:text-slate-700 font-medium"
                                 />
                             </div>
                         </div>
 
                         <div className="space-y-2">
-                            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Security Keyphrase</label>
+                            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Password</label>
                             <div className="relative group">
                                 <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 group-focus-within:text-brand-orange transition-colors" />
                                 <input
@@ -104,7 +148,54 @@ const AuthPage = ({ mode }) => {
                                     className="w-full bg-slate-950/80 border border-white/5 rounded-2xl py-4 pl-12 pr-4 text-sm text-slate-200 focus:border-brand-orange/40 focus:bg-slate-950 transition-all placeholder:text-slate-700 font-medium"
                                 />
                             </div>
+                            {mode === 'register' && password && (
+                                <div className="mt-2 flex items-center space-x-1 px-1">
+                                    <div className="flex-1 h-1 bg-slate-800 rounded-full overflow-hidden">
+                                        <motion.div 
+                                            initial={{ width: 0 }}
+                                            animate={{ 
+                                                width: `${passwordStrength}%`,
+                                                backgroundColor: passwordStrength < 50 ? '#ff2a2e' : passwordStrength < 100 ? '#ff8b00' : '#00f0ff'
+                                            }}
+                                            className="h-full"
+                                        />
+                                    </div>
+                                    <span className="text-[8px] font-black uppercase text-slate-600 tracking-tighter w-12 text-right">
+                                        {passwordStrength < 50 ? 'Weak' : passwordStrength < 100 ? 'Secure' : 'Strong'}
+                                    </span>
+                                </div>
+                            )}
                         </div>
+
+                        {mode === 'register' && (
+                            <motion.div 
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                className="space-y-2"
+                            >
+                                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Confirm Password</label>
+                                <div className="relative group">
+                                    <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 group-focus-within:text-brand-orange transition-colors" />
+                                    <input
+                                        required
+                                        type="password"
+                                        value={confirmPassword}
+                                        onChange={(e) => setConfirmPassword(e.target.value)}
+                                        placeholder="••••••••••••"
+                                        className="w-full bg-slate-950/80 border border-white/5 rounded-2xl py-4 pl-12 pr-4 text-sm text-slate-200 focus:border-brand-orange/40 focus:bg-slate-950 transition-all placeholder:text-slate-700 font-medium"
+                                    />
+                                    {confirmPassword && (
+                                        <div className="absolute right-4 top-1/2 -translate-y-1/2">
+                                            {password === confirmPassword ? (
+                                                <CheckCircle2 className="w-4 h-4 text-brand-cyan" />
+                                            ) : (
+                                                <XCircle className="w-4 h-4 text-brand-red" />
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
+                            </motion.div>
+                        )}
 
                         {error && (
                             <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} className="bg-brand-red/5 border border-brand-red/20 p-4 rounded-2xl flex items-center text-[11px] text-brand-red font-bold">
@@ -118,10 +209,10 @@ const AuthPage = ({ mode }) => {
                             isProcessing={loading}
                             variant="primary"
                             icon={ArrowRight}
-                            label="Initializing"
+                            label={mode === 'login' ? 'Logging in...' : 'Creating...'}
                             className="mt-10 py-5 rounded-[24px]"
                         >
-                            {mode === 'login' ? 'Authorize Identity' : 'Register Operator'}
+                            {mode === 'login' ? 'Sign In' : 'Create Account'}
                         </DynamicButton>
                     </form>
 
@@ -130,7 +221,7 @@ const AuthPage = ({ mode }) => {
                             to={mode === 'login' ? '/register' : '/login'}
                             className="text-[10px] font-black text-slate-400 hover:text-white transition-colors uppercase tracking-[0.2em]"
                         >
-                            {mode === 'login' ? 'Request Authorization Keys' : 'Existing System Profile Found'}
+                            {mode === 'login' ? "Don't have an account? Create one" : 'Already have an account? Sign In'}
                         </Link>
                     </div>
                 </div>

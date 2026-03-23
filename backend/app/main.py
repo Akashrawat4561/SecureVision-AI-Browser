@@ -46,6 +46,7 @@ limiter = Limiter(key_func=get_remote_address)
 class UserAuth(BaseModel):
     email: EmailStr
     password: str
+    full_name: Optional[str] = None
 
 # --- STATE ---
 honeypot_stats: Dict[str, Any] = {
@@ -138,7 +139,7 @@ async def register(request: Request, user: UserAuth, db: Session = Depends(get_d
     if db_user:
         raise HTTPException(status_code=400, detail="User already exists")
     hashed_pwd = pwd_context.hash(user.password)
-    new_user = User(email=user.email, hashed_password=hashed_pwd)
+    new_user = User(email=user.email, hashed_password=hashed_pwd, full_name=user.full_name)
     db.add(new_user)
     db.commit()
     return {"message": "User registered successfully"}
