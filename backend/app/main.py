@@ -1,4 +1,5 @@
 import os
+from dotenv import load_dotenv
 import asyncio
 import random
 import time
@@ -28,6 +29,15 @@ from core.logger import logger
 from core.database import engine, Base, get_db
 from models.user import User
 from sqlalchemy.orm import Session
+
+# Load .env from project root
+dotenv_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), '.env')
+if os.path.exists(dotenv_path):
+    load_dotenv(dotenv_path)
+    logger.info(f"[Config] Loaded .env from {dotenv_path}")
+else:
+    logger.warning(f"[Config] .env NOT FOUND at {dotenv_path}")
+
 from fastapi import Depends, Request
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
@@ -43,6 +53,15 @@ Base.metadata.create_all(bind=engine)
 
 # Rate limiter setup
 limiter = Limiter(key_func=get_remote_address)
+
+# Global Simulation Toggle & Delay
+ENABLE_SIMULATION = os.getenv("ENABLE_SIMULATION", "true").lower() == "true"
+LAST_REAL_EVENT_TIME = time.time()
+SIMULATION_DELAY_SECONDS = 25
+
+def reset_idle_timer():
+    global LAST_REAL_EVENT_TIME
+    LAST_REAL_EVENT_TIME = time.time()
 
 class UserAuth(BaseModel):
     email: EmailStr
@@ -136,6 +155,7 @@ app.add_middleware(
 @app.post("/api/register")
 @limiter.limit("5/minute")
 async def register(request: Request, user: UserAuth, db: Session = Depends(get_db)):
+    reset_idle_timer()
     db_user = db.query(User).filter(User.email == user.email).first()
     if db_user:
         raise HTTPException(status_code=400, detail="User already exists")
@@ -148,6 +168,7 @@ async def register(request: Request, user: UserAuth, db: Session = Depends(get_d
 @app.post("/api/login")
 @limiter.limit("10/minute")
 async def login(request: Request, user: UserAuth, db: Session = Depends(get_db)):
+    reset_idle_timer()
     db_user = db.query(User).filter(User.email == user.email).first()
     if not db_user or not pwd_context.verify(user.password, db_user.hashed_password):
         raise HTTPException(status_code=400, detail="Invalid credentials")
@@ -159,6 +180,7 @@ async def login(request: Request, user: UserAuth, db: Session = Depends(get_db))
 @app.post("/api/deepfake")
 @limiter.limit("30/minute")
 async def detect_deepfake(request: Request, file: UploadFile = File(None), url: str = Form(None)):
+    reset_idle_timer()
     content = None
     filename = ""
     is_known_ai = False
@@ -300,6 +322,7 @@ async def deepfake_score_distribution():
 
 @app.post("/api/honeypot/session")
 async def honeypot_session_update(data: dict):
+    reset_idle_timer()
     action = data.get("action")
     if action == "start":
         honeypot_stats["active_sessions"] = int(honeypot_stats["active_sessions"]) + 1
@@ -311,6 +334,7 @@ async def honeypot_session_update(data: dict):
 
 @app.post("/api/honeypot/event")
 async def honeypot_event_ingress(data: dict):
+    reset_idle_timer()
     return {"status": "ok"}
 
 @app.post("/api/edge/heartbeat")
@@ -368,7 +392,7 @@ async def upload_anomaly_data(file: UploadFile = File(...)):
     return {"total": len(combined), "anomalies": [r for r in combined if r["is_anomaly"]], "results": limited_results}
 
 # --- TELEMETRY & ALERTS ---
-def generate_edge_nodes():
+def generate_edge_nodes(use_fallback=True):
     """Generate live-looking edge node telemetry."""
     nodes = []
     
@@ -391,10 +415,19 @@ def generate_edge_nodes():
             ram = host_ram
             status = "online"
         else:
-            # For others, use heartbeat if available, else simulate
-            cpu = stats.get("cpu_usage",   round(random.uniform(12, 72), 1))
-            ram = stats.get("ram_usage",   round(random.uniform(20, 65), 1))
-            status = "online" if (real.get("last_seen", 0) > time.time() - 30) else "simulated"
+            # For others, use heartbeat if available, else simulate if enabled
+            if real.get("last_seen", 0) > time.time() - 30:
+                cpu = stats.get("cpu_usage", 0)
+                ram = stats.get("ram_usage", 0)
+                status = "online"
+            elif use_fallback:
+                cpu = stats.get("cpu_usage",   round(random.uniform(12, 72), 1))
+                ram = stats.get("ram_usage",   round(random.uniform(20, 65), 1))
+                status = "simulated"
+            else:
+                cpu = 0
+                ram = 0
+                status = "offline"
 
         nodes.append({
             "id":          defn["id"],
@@ -403,22 +436,32 @@ def generate_edge_nodes():
             "status":      status,
             "cpu":         cpu,
             "ram":         ram,
-            "temperature": stats.get("temperature", round(random.uniform(42, 68), 1)),
-            "latency":     round(random.uniform(4, 35), 1),
-            "uptime":      "99.9%",
+            "temperature": stats.get("temperature", round(random.uniform(42, 68), 1) if use_fallback else 0),
+            "latency":     round(random.uniform(4, 35), 1) if status != "offline" else 0,
+            "uptime":      "99.9%" if status != "offline" else "0%",
         })
     return nodes
 
 def generate_telemetry():
     b_bytes, b_count = sniffer.get_burst_metrics()
     
+    # Check if we should use simulation fallback (Delayed Simulation)
+    idle_time = time.time() - LAST_REAL_EVENT_TIME
+    is_idle = (idle_time > SIMULATION_DELAY_SECONDS)
+    use_fallback = ENABLE_SIMULATION or is_idle
+
+    # Debug log (Temporary)
+    if random.random() < 0.05: # Log every ~10s
+        logger.info(f"[Debug] Idle: {round(idle_time,1)}s | Sim: {ENABLE_SIMULATION} | Fallback: {use_fallback}")
+
     # Prioritize real intercepted packets over simulation
     if b_count > 0:
+        reset_idle_timer()
         traffic = max(80, b_bytes * 5) # Scale to model expectations
         dst = traffic * 0.6
         logins = b_count
         srv = max(1, b_count // 3)
-    else:
+    elif use_fallback:
         sample = anomaly_engine.get_stream_sample()
         if sample:
             traffic, dst, logins, srv = sample
@@ -427,12 +470,18 @@ def generate_telemetry():
             dst = traffic * 0.7
             logins = random.randint(5, 30)
             srv = 5
+    else:
+        traffic = 0
+        dst = 0
+        logins = 0
+        srv = 0
         
     pred = anomaly_engine.predict_single(traffic, dst, logins, srv)
 
-    # Use real honeypot events if available, fall back to simulated demo events
+    # Use real honeypot events if available, fall back to simulated demo events if enabled
     real_events = get_honeypot_events(10)
-    events_to_send = real_events if real_events else SIM_HONEYPOT_EVENTS[:8]
+    if real_events: reset_idle_timer()
+    events_to_send = real_events if real_events else (SIM_HONEYPOT_EVENTS[:8] if use_fallback else [])
 
     return {
         "type": "TELEMETRY",
@@ -441,32 +490,40 @@ def generate_telemetry():
         "logins": logins,
         "is_anomaly": pred["is_anomaly"],
         "anomaly_score": pred["anomaly_score"],
+        "is_simulated": not b_count > 0 and use_fallback,
         "honeypot_connections": honeypot_stats["active_sessions"],
         "honeypot_metrics": {
-            "top_exploit": honeypot_stats["top_exploit"],
-            "payload_count": random.randint(10, 50),
-            "avg_dwell_time": f"{random.randint(5, 45)}s"
+            "top_exploit": honeypot_stats["top_exploit"] if (real_events or use_fallback) else "None",
+            "payload_count": random.randint(10, 50) if use_fallback else 0,
+            "avg_dwell_time": f"{random.randint(5, 45)}s" if use_fallback else "0s"
         },
         "honeypot_events": events_to_send,
-        "nodes": generate_edge_nodes(),
+        "nodes": generate_edge_nodes(use_fallback),
     }
 
 async def broadcast_telemetry():
     while True:
-        await asyncio.sleep(2)
-        data = generate_telemetry()
-        await manager.broadcast(data)
-        if data["is_anomaly"] or random.random() < 0.05:
-            alert = {
-                "id": random.randint(1000, 9999),
-                "type": "ANOMALY",
-                "title": "Unusual Traffic Spike Blocked",
-                "source": "Edge-Node-7",
-                "severity": "high",
-                "time": datetime.now().strftime("%H:%M:%S"),
-                "event": "NEW_ALERT"
-            }
-            await manager.broadcast(alert)
+        try:
+            await asyncio.sleep(2)
+            data = generate_telemetry()
+            use_fallback = data.get("is_simulated", False)
+            await manager.broadcast(data)
+            
+            # Randomly inject anomaly alerts if in simulation mode
+            if data["is_anomaly"] or (use_fallback and random.random() < 0.05):
+                alert = {
+                    "id": random.randint(1000, 9999),
+                    "type": "ANOMALY",
+                    "title": "Unusual Traffic Spike Blocked",
+                    "source": "Edge-Node-7",
+                    "severity": "high",
+                    "time": datetime.now().strftime("%H:%M:%S"),
+                    "event": "NEW_ALERT"
+                }
+                await manager.broadcast(alert)
+        except Exception as e:
+            logger.error(f"[Telemetry] Loop error: {e}")
+            await asyncio.sleep(5)
 
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):

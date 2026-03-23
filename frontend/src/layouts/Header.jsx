@@ -22,20 +22,22 @@ export default function Header() {
             {/* Actions & Profile */}
             <div className="flex items-center space-x-6">
                 <div className="flex items-center space-x-2">
-                    <DynamicButton 
-                        variant="ghost" 
-                        fullWidth={false} 
-                        className="w-10 h-10 p-0 rounded-xl"
-                        icon={Bell}
-                    >
-                        <span className="absolute top-2.5 right-2.5 w-2 h-2 bg-brand-red rounded-full border-2 border-slate-950 shadow-[0_0_8px_#ff2a2e] animate-pulse" />
-                    </DynamicButton>
-                    <DynamicButton 
+                    <Link to="/response">
+                        <DynamicButton 
+                            variant="ghost" 
+                            fullWidth={false} 
+                            className="w-10 h-10 p-0 rounded-xl"
+                            icon={Bell}
+                        >
+                            <span className="absolute top-2.5 right-2.5 w-2 h-2 bg-brand-red rounded-full border-2 border-slate-950 shadow-[0_0_8px_#ff2a2e] animate-pulse" />
+                        </DynamicButton>
+                    </Link>
+                    {/* <DynamicButton 
                         variant="ghost" 
                         fullWidth={false} 
                         className="w-10 h-10 p-0 rounded-xl"
                         icon={Mail}
-                    />
+                    /> */}
                 </div>
 
                 <div className="h-8 w-[1px] bg-white/5" />

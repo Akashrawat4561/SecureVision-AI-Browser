@@ -260,7 +260,7 @@ def _handle_ssh(client: socket.socket, addr):
             if not command: continue
             
             payloads.append(command)
-            logger.info(f"[SSH-Decoy] {addr[0]} ran: {command}", flush=True)
+            logger.info(f"[SSH-Decoy] {addr[0]} ran: {command}")
             
             cmd_lower = command.lower()
             if cmd_lower in ("exit", "logout"):
@@ -295,7 +295,7 @@ def _handle_ssh(client: socket.socket, addr):
         atype, sev = "SSH Port Knock", "low"
 
     session = _build_session(addr[0], "SSH", payloads, dwell, atype, sev)
-    logger.info(f"[SSH-Decoy] Session closed: {addr[0]} | {atype} | {sev} | {round(dwell,1)}s", flush=True)
+    logger.info(f"[SSH-Decoy] Session closed: {addr[0]} | {atype} | {sev} | {round(dwell,1)}s")
     report_engagement(session)
 
 
@@ -317,7 +317,7 @@ def _handle_http(client: socket.socket, addr):
         if data:
             decoded = data.decode("utf-8", errors="replace")
             payloads.append(decoded[:512])
-            logger.info(f"[HTTP-Decoy] {addr[0]} → {decoded[:80]!r}", flush=True)
+            logger.info(f"[HTTP-Decoy] {addr[0]} → {decoded[:80]!r}")
 
             # Pick matching response
             resp = HTTP_RESPONSES["default"]
@@ -334,7 +334,7 @@ def _handle_http(client: socket.socket, addr):
     combined = " ".join(payloads)
     atype, sev = classify_payload(combined) if payloads else ("HTTP Probe", "low")
     session = _build_session(addr[0], "HTTP", payloads, time.time() - start, atype, sev)
-    logger.info(f"[HTTP-Decoy] {addr[0]} | {atype} | {sev}", flush=True)
+    logger.info(f"[HTTP-Decoy] {addr[0]} | {atype} | {sev}")
     report_engagement(session)
 
 
@@ -354,7 +354,7 @@ def _handle_smtp(client: socket.socket, addr):
             if not data: break
             decoded = data.decode("utf-8", errors="replace").strip()
             payloads.append(decoded)
-            logger.info(f"[SMTP-Decoy] {addr[0]} → {decoded[:60]!r}", flush=True)
+            logger.info(f"[SMTP-Decoy] {addr[0]} → {decoded[:60]!r}")
             # Fake positive responses to lure attacker further
             if decoded.upper().startswith("DATA"):
                 client.send(SMTP_READY)
@@ -372,7 +372,7 @@ def _handle_smtp(client: socket.socket, addr):
     combined = " ".join(payloads)
     atype, sev = classify_payload(combined) if payloads else ("SMTP Probe", "low")
     session = _build_session(addr[0], "SMTP", payloads, time.time() - start, atype, sev)
-    logger.info(f"[SMTP-Decoy] {addr[0]} | {atype} | {sev}", flush=True)
+    logger.info(f"[SMTP-Decoy] {addr[0]} | {atype} | {sev}")
     report_engagement(session)
 
 
@@ -392,7 +392,7 @@ def _handle_ftp(client: socket.socket, addr):
             if not data: break
             decoded = data.decode("utf-8", errors="replace").strip()
             payloads.append(decoded)
-            logger.info(f"[FTP-Decoy] {addr[0]} → {decoded[:60]!r}", flush=True)
+            logger.info(f"[FTP-Decoy] {addr[0]} → {decoded[:60]!r}")
             upper = decoded.upper()
             if upper.startswith("USER"):
                 client.send(FTP_USER_OK)
@@ -411,7 +411,7 @@ def _handle_ftp(client: socket.socket, addr):
     combined = " ".join(payloads)
     atype, sev = classify_payload(combined) if payloads else ("FTP Probe", "low")
     session = _build_session(addr[0], "FTP", payloads, time.time() - start, atype, sev)
-    logger.info(f"[FTP-Decoy] {addr[0]} | {atype} | {sev}", flush=True)
+    logger.info(f"[FTP-Decoy] {addr[0]} | {atype} | {sev}")
     report_engagement(session)
 
 
@@ -429,7 +429,7 @@ def _start_decoy(port: int, handler, protocol: str):
             logger.info(f"[Honeypot] Could not bind {protocol} on port {port}: {e}")
             return
         srv.listen(20)
-        logger.info(f"[Honeypot] {protocol} decoy active on port {port}", flush=True)
+        logger.info(f"[Honeypot] {protocol} decoy active on port {port}")
         while True:
             try:
                 client, addr = srv.accept()
@@ -455,15 +455,14 @@ def start_honeypot_grid(
     Starts all four decoy servers in daemon threads.
     Call this once from main.py startup event.
     """
-    logger.info("[Honeypot] Initialising SecureVision Deception Grid v2.0 …", flush=True)
+    logger.info("[Honeypot] Initialising SecureVision Deception Grid v2.0 …")
     _start_decoy(ssh_port,  _handle_ssh,  "SSH")
     _start_decoy(http_port, _handle_http, "HTTP")
     _start_decoy(smtp_port, _handle_smtp, "SMTP")
     _start_decoy(ftp_port,  _handle_ftp,  "FTP")
     logger.info(
         f"[Honeypot] Grid online — SSH:{ssh_port} HTTP:{http_port} "
-        f"SMTP:{smtp_port} FTP:{ftp_port}",
-        flush=True
+        f"SMTP:{smtp_port} FTP:{ftp_port}"
     )
 
 
@@ -479,11 +478,11 @@ if __name__ == "__main__":
     start_honeypot_grid(ssh, http, smtp, ftp)
 
     # Keep alive
-    logger.info("[Honeypot] Running. Ctrl+C to stop.", flush=True)
+    logger.info("[Honeypot] Running. Ctrl+C to stop.")
     try:
         while True:
             time.sleep(10)
             with _log_lock:
-                logger.info(f"[Honeypot] Events captured: {len(engagement_log)}", flush=True)
+                logger.info(f"[Honeypot] Events captured: {len(engagement_log)}")
     except KeyboardInterrupt:
         logger.info("\n[Honeypot] Grid shutdown.")
