@@ -7,6 +7,7 @@ import {
     Globe, AlertTriangle, Activity, Shield, TrendingUp, Zap,
     RefreshCw, Filter, ChevronDown, WifiOff, Wifi, Eye, MapPin
 } from 'lucide-react';
+import { useWebSocket } from '../context/WebSocketContext';
 
 /* ─── Helpers ────────────────────────────────────────────── */
 const geoUrl = 'https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json';
@@ -97,29 +98,47 @@ function StatCard({ icon: Icon, label, value, sub, color, trend }) {
 
 /* ─── Main Page ──────────────────────────────────────────── */
 export default function ThreatMapPage() {
-    const [events, setEvents]         = useState(() => Array.from({ length: 12 }, makeEvent));
+    const { data, connected } = useWebSocket();
+    const [events, setEvents]         = useState([]);
     const [selected, setSelected]     = useState(null);
     const [filter, setFilter]         = useState('all');
     const [live, setLive]             = useState(true);
     const [newEventId, setNewEventId] = useState(null);
     const [blocked24h, setBlocked24h] = useState(12_847);
-    const [totalEvents, setTotalEvents] = useState(events.length);
+    const [totalEvents, setTotalEvents] = useState(0);
     const [showFilter, setShowFilter] = useState(false);
-    const timerRef = useRef(null);
 
-    // Live threat event generator
+    // Ingest real events from WebSocket
     useEffect(() => {
-        if (!live) { if (timerRef.current) clearInterval(timerRef.current); return; }
-        timerRef.current = setInterval(() => {
-            const ev = makeEvent();
-            setNewEventId(ev.id);
-            setEvents(prev => [ev, ...prev].slice(0, 40));
-            setTotalEvents(n => n + 1);
-            if (ev.blocked) setBlocked24h(n => n + 1);
+        if (!live || !connected || !data?.honeypot_events) return;
+        
+        const backendEvents = data.honeypot_events.map(e => ({
+            id:          e.id,
+            coordinates: e.geo?.coords || [0, 0],
+            severity:    e.severity || 'low',
+            type:        e.attack_type || 'Probe',
+            country:     e.geo?.country || 'Unknown',
+            city:        e.geo?.city || 'Unknown',
+            ip:          e.ip || '0.0.0.0',
+            timestamp:   new Date(e.timestamp),
+            blocked:     true, // Backend honeypot effectively "blocks" by trapping
+            packets:     Math.floor(Math.random() * 500) + 10,
+        }));
+
+        setEvents(prev => {
+            const newIds = new Set(backendEvents.map(e => e.id));
+            const filtered = prev.filter(e => !newIds.has(e.id));
+            const combined = [...backendEvents, ...filtered].slice(0, 40);
+            return combined;
+        });
+
+        if (backendEvents.length > 0) {
+            setNewEventId(backendEvents[0].id);
+            setTotalEvents(prev => prev + backendEvents.length);
+            setBlocked24h(prev => prev + backendEvents.length);
             setTimeout(() => setNewEventId(null), 1800);
-        }, 2800);
-        return () => { if (timerRef.current) clearInterval(timerRef.current); };
-    }, [live]);
+        }
+    }, [data?.honeypot_events, connected, live]);
 
     const filtered = filter === 'all' ? events : events.filter(e => e.severity === filter);
     const counts = {

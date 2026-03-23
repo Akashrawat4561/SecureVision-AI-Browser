@@ -4,6 +4,7 @@ import random
 import time
 from datetime import datetime
 from contextlib import asynccontextmanager
+import psutil
 from fastapi import FastAPI, HTTPException, UploadFile, File, Form, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 import requests
@@ -370,17 +371,38 @@ async def upload_anomaly_data(file: UploadFile = File(...)):
 def generate_edge_nodes():
     """Generate live-looking edge node telemetry."""
     nodes = []
+    
+    # Get REAL host stats for the central server
+    try:
+        host_cpu = psutil.cpu_percent(interval=None)
+        host_ram = psutil.virtual_memory().percent
+    except:
+        host_cpu = round(random.uniform(10, 30), 1)
+        host_ram = round(random.uniform(15, 40), 1)
+
     for defn in EDGE_NODE_DEFS:
-        # Pull real heartbeat if available, otherwise simulate
+        # Pull real heartbeat if available
         real = edge_nodes_state.get(defn["id"], {})
         stats = real.get("stats", {})
+        
+        # If it's the central server, use the psutil stats we just fetched
+        if defn["id"] == "node-central":
+            cpu = host_cpu
+            ram = host_ram
+            status = "online"
+        else:
+            # For others, use heartbeat if available, else simulate
+            cpu = stats.get("cpu_usage",   round(random.uniform(12, 72), 1))
+            ram = stats.get("ram_usage",   round(random.uniform(20, 65), 1))
+            status = "online" if (real.get("last_seen", 0) > time.time() - 30) else "simulated"
+
         nodes.append({
             "id":          defn["id"],
             "name":        defn["name"],
             "region":      defn["region"],
-            "status":      "online",
-            "cpu":         stats.get("cpu_usage",   round(random.uniform(12, 72), 1)),
-            "ram":         stats.get("ram_usage",   round(random.uniform(20, 65), 1)),
+            "status":      status,
+            "cpu":         cpu,
+            "ram":         ram,
             "temperature": stats.get("temperature", round(random.uniform(42, 68), 1)),
             "latency":     round(random.uniform(4, 35), 1),
             "uptime":      "99.9%",

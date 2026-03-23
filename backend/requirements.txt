@@ -34,3 +34,4 @@ scapy
 paramiko
 pytest
 bandit
+psutil
