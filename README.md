@@ -64,7 +64,7 @@ SecureVision AI is a high-fidelity, startup-level cybersecurity platform designe
 - Active Python virtual environment (`.venv/`)
 
 ### 2. Backend Setup
-```powershell
+```bash
 cd backend
 pip install -r requirements.txt
 python main.py
@@ -72,7 +72,7 @@ python main.py
 *The FastAPI server starts at: **http://localhost:8000***
 
 ### 3. Frontend Setup
-```powershell
+```bash
 cd frontend
 npm install
 npm run dev
@@ -82,37 +82,37 @@ npm run dev
 ---
 
 ## 🐳 Running with Docker
-
 Deploy the full stack including Database and Nginx proxy with a single command:
 
-```powershell
+```bash
 docker-compose up --build
 ```
 
 ---
 
 ## 🛡️ Security & Performance
-
-*   **Database:** SQLAlchemy ORM with support for SQLite (dev) or PostgreSQL (prod).
-*   **Cryptography:** Salted Bcrypt hashing for password security.
-*   **Validation:** Pydantic strict-type checking for all API boundaries.
-*   **Protection:** Memory-backed rate limiting to mitigate DoS and brute-force attempts.
-*   **Feedback:** Real-time updates delivered via asynchronous WebSocket listeners.
+- **Database:** SQLAlchemy ORM with support for SQLite (dev) or PostgreSQL (prod).
+- **Cryptography:** Salted Bcrypt hashing for password security.
+- **Validation:** Pydantic strict-type checking for all API boundaries.
+- **Protection:** Memory-backed rate limiting to mitigate DoS and brute-force attempts.
+- **Feedback:** Real-time updates delivered via asynchronous WebSocket listeners.
 
 ---
 
 ## 🔮 Roadmap / Future Strategy
-
-*   **Kafka Integration:** Distributed ingestion for enterprise-scale logs.
-*   **Active Defense:** Automatic firewall blacklisting based on high-confidence honeypot signals.
-*   **Advanced AI:** Implementation of Vision Transformers (ViT) for sub-pixel deepfake forensics.
+- **Kafka Integration:** Distributed ingestion for enterprise-scale logs.
+- **Active Defense:** Automatic firewall blacklisting based on high-confidence honeypot signals.
+- **Advanced AI:** Implementation of Vision Transformers (ViT) for sub-pixel deepfake forensics.
 
 ---
 
-Produced by **SecureVision AI Systems**. Ready for Pilot Deployment.
-oy grid with live attacker logging   |
-| 🎯 **Predictive Sim**     | GPT-2 powered phishing payload generation & detection testing   |
-| 🗺️ **Threat Map**         | Live global threat visualization                                |
-| 💻 **Live Terminal**      | Real-time logs via WebSocket terminal widget                     |
-| 🔐 **JWT Auth**           | Register / login with SHA-256 password hashing                  |
-| 🌐 **Intel Sharing**      | Cross-node threat intelligence broadcasting                      |
+**Produced by SecureVision AI Systems. Ready for Pilot Deployment.**
+
+| Feature | Description |
+| :--- | :--- |
+| 🛡️ **Honeypot Grid** | Live attacker logging and decoy playground |
+| 🎯 **Predictive Sim** | GPT-2 powered phishing payload generation & detection testing |
+| 🗺️ **Threat Map** | Live global threat visualization |
+| 💻 **Live Terminal** | Real-time logs via WebSocket terminal widget |
+| 🔐 **JWT Auth** | Register / login with SHA-256 password hashing |
+| 🌐 **Intel Sharing** | Cross-node threat intelligence broadcasting |
