@@ -1,5 +1,13 @@
 import os
 from dotenv import load_dotenv
+
+# Load .env FIRST, before any module that reads env vars (like database.py)
+_dotenv_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), '.env')
+if os.path.exists(_dotenv_path):
+    load_dotenv(_dotenv_path)
+    print(f"[Config] Loaded .env from {_dotenv_path}")
+else:
+    print(f"[Config] .env NOT FOUND at {_dotenv_path}")
 import asyncio
 import random
 import time
@@ -16,7 +24,7 @@ import cv2
 import numpy as np
 import json
 from typing import Any, Dict, List, Optional
-from passlib.context import CryptContext
+import bcrypt
 from jose import JWTError, jwt
 
 # Corrected Imports for New Structure
@@ -30,13 +38,7 @@ from core.database import engine, Base, get_db
 from models.user import User
 from sqlalchemy.orm import Session
 
-# Load .env from project root
-dotenv_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), '.env')
-if os.path.exists(dotenv_path):
-    load_dotenv(dotenv_path)
-    logger.info(f"[Config] Loaded .env from {dotenv_path}")
-else:
-    logger.warning(f"[Config] .env NOT FOUND at {dotenv_path}")
+# .env already loaded at module top, before database import
 
 from fastapi import Depends, Request
 from slowapi import Limiter, _rate_limit_exceeded_handler
@@ -46,7 +48,17 @@ from slowapi.errors import RateLimitExceeded
 # --- AUTH CONFIGURATION ---
 SECRET_KEY = "secure-vision-ai-ultra-secret"
 ALGORITHM = "HS256"
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+def hash_password(password: str) -> str:
+    pwd_bytes = password.encode('utf-8')
+    salt = bcrypt.gensalt()
+    return bcrypt.hashpw(pwd_bytes, salt).decode('utf-8')
+
+def verify_password(plain_password: str, hashed_password: str) -> bool:
+    try:
+        return bcrypt.checkpw(plain_password.encode('utf-8'), hashed_password.encode('utf-8'))
+    except Exception:
+        return False
 
 # Initialize DB tables
 Base.metadata.create_all(bind=engine)
@@ -159,7 +171,7 @@ async def register(request: Request, user: UserAuth, db: Session = Depends(get_d
     db_user = db.query(User).filter(User.email == user.email).first()
     if db_user:
         raise HTTPException(status_code=400, detail="User already exists")
-    hashed_pwd = pwd_context.hash(user.password)
+    hashed_pwd = hash_password(user.password)
     new_user = User(email=user.email, hashed_password=hashed_pwd, full_name=user.full_name)
     db.add(new_user)
     db.commit()
@@ -170,7 +182,7 @@ async def register(request: Request, user: UserAuth, db: Session = Depends(get_d
 async def login(request: Request, user: UserAuth, db: Session = Depends(get_db)):
     reset_idle_timer()
     db_user = db.query(User).filter(User.email == user.email).first()
-    if not db_user or not pwd_context.verify(user.password, db_user.hashed_password):
+    if not db_user or not verify_password(user.password, db_user.hashed_password):
         raise HTTPException(status_code=400, detail="Invalid credentials")
     token = jwt.encode({"sub": user.email}, SECRET_KEY, algorithm=ALGORITHM)
     return {"token": token}

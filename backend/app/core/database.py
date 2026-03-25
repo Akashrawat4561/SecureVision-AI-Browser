@@ -19,6 +19,7 @@ else:
     except Exception as e:
         logger.error(f"PostgreSQL connection failed. Falling back to SQLite.")
         SQLALCHEMY_DATABASE_URL = "sqlite:///./securevision.db"
+        logger.info(f"[DB] Initializing SQLite at {os.path.abspath('securevision.db')}")
         engine = create_engine(SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False})
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
