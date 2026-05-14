@@ -17,11 +17,6 @@ backend/app/data/*.json
 !backend/app/models/.gitkeep
 !backend/app/data/.gitkeep
 
-# Databases
-*.db
-*.sqlite3
-*.sqlite
-
 # Logs
 backend/app/logs/*.log
 backend/app/logs/*.txt
@@ -38,4 +33,3 @@ build/
 .idea/
 .gemini/
 .agents/
-

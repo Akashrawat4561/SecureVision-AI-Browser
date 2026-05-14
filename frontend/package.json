@@ -1,39 +1,42 @@
 {
-  "name": "securevision-browser",
+  "name": "frontend",
   "version": "1.0.0",
-  "private": true,
-  "main": "electron/main.js",
-  "type": "module",
+  "main": "index.js",
   "scripts": {
-    "dev": "concurrently \"vite\" \"wait-on tcp:5173 && electron .\"",
-    "dev:web": "vite",
-    "build:web": "vite build",
-    "build": "npm run build:web",
-    "start": "electron .",
+    "dev": "vite",
+    "build": "vite build",
     "preview": "vite preview"
   },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
   "dependencies": {
     "clsx": "^2.1.1",
-    "form-data": "^4.0.5",
-    "framer-motion": "^12.35.0",
-    "lucide-react": "^0.577.0",
+    "d3-geo": "^3.1.1",
+    "prop-types": "^15.8.1",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
+    "react-is": "^19.2.4",
     "react-router-dom": "^7.13.1",
-    "tailwind-merge": "^3.5.0"
+    "react-simple-maps": "^3.0.0",
+    "tailwind-merge": "^3.5.0",
+    "topojson-client": "^3.1.0"
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.2.1",
     "@types/node": "^25.3.5",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
+    "@types/react-simple-maps": "^3.0.6",
     "@vitejs/plugin-react": "^5.1.4",
     "autoprefixer": "^10.4.27",
-    "concurrently": "^9.1.2",
-    "electron": "^37.2.1",
+    "framer-motion": "^12.35.0",
+    "lucide-react": "^0.577.0",
     "postcss": "^8.5.8",
+    "recharts": "^3.8.0",
     "tailwindcss": "^4.2.1",
-    "vite": "^7.3.1",
-    "wait-on": "^8.0.3"
-  }
+    "typescript": "^5.9.3",
+    "vite": "^7.3.1"
+  },
+  "description": ""
 }

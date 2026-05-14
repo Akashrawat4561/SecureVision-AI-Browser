@@ -1,0 +1,58 @@
+﻿
+> frontend@1.0.0 build
+> tsc -b && vite build
+
+[36mvite v7.3.1 [32mbuilding client environment for production...[36m[39m
+transforming...
+[32mΓ£ô[39m 3 modules transformed.
+node.exe : [31mΓ£ù[39m 
+Build failed in 41ms
+At C:\Program 
+Files\nodejs\npm.ps1:29 char:3
++   & $NODE_EXE $NPM_CLI_JS 
+$args
++   
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : 
+    NotSpecified: ([31mΓ£ù  
+  [39m Build failed in 41ms   
+ :String) [], RemoteExcept    
+ion
+    + FullyQualifiedErrorId : 
+    NativeCommandError
+ 
+[31merror during build:
+[31m[@tailwindcss/vite:genera
+te:build] Missing opening 
+{[31m
+file: [36mC:/Users/GC/Downloa
+ds/18/frontend/src/index.css[
+31m
+    at Se (file:///C:/Users/GC
+/Downloads/18/frontend/node_mo
+dules/tailwindcss/dist/chunk-L
+5IEUH3R.mjs:1:3079)
+    at vf (file:///C:/Users/GC
+/Downloads/18/frontend/node_mo
+dules/tailwindcss/dist/chunk-L
+5IEUH3R.mjs:38:1384)
+    at uu (file:///C:/Users/GC
+/Downloads/18/frontend/node_mo
+dules/@tailwindcss/node/dist/i
+ndex.mjs:10:3464)
+    at B.generate (file:///C:/
+Users/GC/Downloads/18/frontend
+/node_modules/@tailwindcss/vit
+e/dist/index.mjs:1:5055)
+    at Object.handler (file://
+/C:/Users/GC/Downloads/18/fron
+tend/node_modules/@tailwindcss
+/vite/dist/index.mjs:1:3776)
+    at Object.handler (file://
+/C:/Users/GC/Downloads/18/fron
+tend/node_modules/vite/dist/no
+de/chunks/config.js:33730:13)
+    at file:///C:/Users/GC/Dow
+nloads/18/frontend/node_module
+s/rollup/dist/es/shared/node-e
+ntry.js:22571:40[39m

@@ -1,24 +1,43 @@
-import { Navigate, Route, Routes } from "react-router-dom";
-import AppLayout from "./layouts/AppLayout";
-import BrowserPage from "./pages/BrowserPage";
-import DashboardPage from "./pages/DashboardPage";
-import DeepfakePage from "./pages/DeepfakePage";
-import ListPage from "./pages/ListPage";
-import SettingsPage from "./pages/SettingsPage";
+import { Routes, Route } from 'react-router-dom'
+import Layout from './layouts/Layout'
+import Dashboard from './pages/Dashboard'
+import ThreatMap from './pages/ThreatMap'
+import Phishing from './pages/Phishing'
+import Anomaly from './pages/Anomaly'
+import Deepfake from './pages/Deepfake'
+import EdgeStatus from './pages/EdgeStatus'
+import ResponseCenter from './pages/ResponseCenter'
+import Architecture from './pages/Architecture'
+import Settings from './pages/Settings'
+import Honeypot from './pages/Honeypot'
 
-export default function App() {
-  return (
-    <Routes>
-      <Route path="/" element={<AppLayout />}>
-        <Route index element={<Navigate to="/browser" replace />} />
-        <Route path="browser" element={<BrowserPage />} />
-        <Route path="dashboard" element={<DashboardPage />} />
-        <Route path="deepfake" element={<DeepfakePage />} />
-        <Route path="bookmarks" element={<ListPage title="Bookmarks" mode="bookmarks" />} />
-        <Route path="history" element={<ListPage title="History" mode="history" />} />
-        <Route path="downloads" element={<ListPage title="Downloads" mode="downloads" />} />
-        <Route path="settings" element={<SettingsPage />} />
-      </Route>
-    </Routes>
-  );
+import Landing from './pages/Landing'
+import AuthPage from './pages/AuthPage'
+import ProtectedRoute from './components/auth/ProtectedRoute'
+
+function App() {
+    return (
+        <Routes>
+            <Route path="/landing" element={<Landing />} />
+            <Route path="/login" element={<AuthPage mode="login" />} />
+            <Route path="/register" element={<AuthPage mode="register" />} />
+
+            <Route element={<ProtectedRoute />}>
+                <Route path="/" element={<Layout />}>
+                    <Route index element={<Dashboard />} />
+                    <Route path="threatmap" element={<ThreatMap />} />
+                    <Route path="phishing" element={<Phishing />} />
+                    <Route path="anomaly" element={<Anomaly />} />
+                    <Route path="deepfake" element={<Deepfake />} />
+                    <Route path="honeypot" element={<Honeypot />} />
+                    <Route path="edge" element={<EdgeStatus />} />
+                    <Route path="response" element={<ResponseCenter />} />
+                    <Route path="architecture" element={<Architecture />} />
+                    <Route path="settings" element={<Settings />} />
+                </Route>
+            </Route>
+        </Routes>
+    )
 }
+
+export default App
