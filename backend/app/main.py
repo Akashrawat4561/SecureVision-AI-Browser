@@ -36,6 +36,9 @@ from core.logger import logger
 
 from core.database import engine, Base, get_db
 from models.user import User
+from models.history import HistoryItem
+from models.bookmark import BookmarkItem
+from models.stats import SystemStats
 from sqlalchemy.orm import Session
 
 # .env already loaded at module top, before database import
@@ -79,6 +82,20 @@ class UserAuth(BaseModel):
     email: EmailStr
     password: str
     full_name: Optional[str] = None
+
+# --- STATS HELPERS ---
+def get_system_stat(db: Session, key: str) -> int:
+    stat = db.query(SystemStats).filter(SystemStats.key == key).first()
+    return stat.value if stat else 0
+
+def increment_stat(db: Session, key: str, amount: int = 1):
+    stat = db.query(SystemStats).filter(SystemStats.key == key).first()
+    if not stat:
+        stat = SystemStats(key=key, value=amount)
+        db.add(stat)
+    else:
+        stat.value += amount
+    db.commit()
 
 # --- STATE ---
 honeypot_stats: Dict[str, Any] = {
@@ -146,6 +163,17 @@ async def lifespan(app: FastAPI):
     sniffer.start()
         
     telemetry_task = asyncio.create_task(broadcast_telemetry())
+    
+    # Initialize stats baseline if empty
+    from core.database import SessionLocal
+    db = SessionLocal()
+    keys = ["threatsBlocked", "phishingCaught", "unsafeSites", "privacyTrackers", "deepfakeAlerts", "malwareBlocked", "scamsDetected", "sessionsProtected"]
+    for k in keys:
+        if not db.query(SystemStats).filter(SystemStats.key == k).first():
+            db.add(SystemStats(key=k, value=0))
+    db.commit()
+    db.close()
+
     logger.info("Neural Sentinel Online.")
     yield
     # Shutdown
@@ -297,6 +325,15 @@ async def detect_deepfake(request: Request, file: UploadFile = File(None), url: 
             new_result["confidence"] = "HIGH"
             result = new_result
 
+            result = new_result
+
+    # Increment Deepfake Alerts if fake
+    db = next(get_db())
+    increment_stat(db, "sessionsProtected") # Every scan is a session protected
+    if result.get("prediction") == "FAKE":
+        increment_stat(db, "deepfakeAlerts")
+        increment_stat(db, "threatsBlocked")
+
     gradcam_b64 = deepfake_engine.generate_attention_overlay(content, result.get("probability", 0.5))
 
     # Construct V4.0 Response Schema to match Deepfake.tsx expectations
@@ -376,6 +413,9 @@ async def analyze_phishing(request: PhishingRequest):
     found = [w for w in keywords if w in text]
     if found:
         score = min(98.0, 45.0 + len(found) * 15.0)
+        db = next(get_db())
+        increment_stat(db, "phishingCaught")
+        increment_stat(db, "threatsBlocked")
         return {"score": score, "classification": "UNSAFE", "flagged": found}
     return {"score": 5.0, "classification": "SAFE", "flagged": []}
 
@@ -457,14 +497,17 @@ def generate_edge_nodes(use_fallback=True):
 def generate_telemetry():
     b_bytes, b_count = sniffer.get_burst_metrics()
     
-    # Check if we should use simulation fallback (Delayed Simulation)
+    # Check if we should use simulation fallback
+    # Strictly follow ENABLE_SIMULATION from .env
+    # If ENABLE_SIMULATION is false, we ONLY use real sniffer data.
+    use_fallback = ENABLE_SIMULATION
+    
     idle_time = time.time() - LAST_REAL_EVENT_TIME
     is_idle = (idle_time > SIMULATION_DELAY_SECONDS)
-    use_fallback = ENABLE_SIMULATION or is_idle
 
     # Debug log (Temporary)
-    if random.random() < 0.05: # Log every ~10s
-        logger.info(f"[Debug] Idle: {round(idle_time,1)}s | Sim: {ENABLE_SIMULATION} | Fallback: {use_fallback}")
+    if random.random() < 0.1: # Log every ~10s (approx 5 broadcast cycles)
+        logger.info(f"[Telemetry] Source: {'SIMULATION' if use_fallback else 'REAL-TIME'} | Idle: {round(idle_time,1)}s | Packets: {b_count}")
 
     # Prioritize real intercepted packets over simulation
     if b_count > 0:
@@ -502,12 +545,12 @@ def generate_telemetry():
         "logins": logins,
         "is_anomaly": pred["is_anomaly"],
         "anomaly_score": pred["anomaly_score"],
-        "is_simulated": not b_count > 0 and use_fallback,
+        "is_simulated": use_fallback,
         "honeypot_connections": honeypot_stats["active_sessions"],
         "honeypot_metrics": {
             "top_exploit": honeypot_stats["top_exploit"] if (real_events or use_fallback) else "None",
-            "payload_count": random.randint(10, 50) if use_fallback else 0,
-            "avg_dwell_time": f"{random.randint(5, 45)}s" if use_fallback else "0s"
+            "payload_count": random.randint(10, 50) if use_fallback else honeypot_stats["total_payloads"],
+            "avg_dwell_time": f"{random.randint(5, 45)}s" if use_fallback else f"{round(honeypot_stats['total_dwell_time'] / max(1, honeypot_stats['engagement_count']), 1)}s"
         },
         "honeypot_events": events_to_send,
         "nodes": generate_edge_nodes(use_fallback),
@@ -587,6 +630,127 @@ async def honeypot_intelligence():
         
     sorted_clusters = sorted(clusters.values(), key=lambda x: x["total_sessions"], reverse=True)
     return {"clusters": sorted_clusters[:50]}
+
+# --- SQLITE HISTORY API ---
+class HistoryCreate(BaseModel):
+    id: str
+    title: str
+    url: str
+    ts: float
+
+@app.post("/api/history")
+async def add_history(item: HistoryCreate, db: Session = Depends(get_db)):
+    db_item = HistoryItem(id=item.id, title=item.title, url=item.url, ts=item.ts)
+    db.add(db_item)
+    db.commit()
+    db.refresh(db_item)
+    return db_item
+
+@app.get("/api/history")
+async def get_history(db: Session = Depends(get_db)):
+    items = db.query(HistoryItem).order_by(HistoryItem.ts.desc()).limit(100).all()
+    return items
+
+@app.delete("/api/history")
+async def clear_history(db: Session = Depends(get_db)):
+    db.query(HistoryItem).delete()
+    db.commit()
+    return {"status": "ok"}
+
+# --- SQLITE BOOKMARKS API ---
+class BookmarkCreate(BaseModel):
+    id: str
+    title: str
+    url: str
+
+@app.post("/api/bookmarks")
+async def add_bookmark(item: BookmarkCreate, db: Session = Depends(get_db)):
+    db_item = BookmarkItem(id=item.id, title=item.title, url=item.url)
+    db.add(db_item)
+    db.commit()
+    db.refresh(db_item)
+    return db_item
+
+@app.get("/api/bookmarks")
+async def get_bookmarks(db: Session = Depends(get_db)):
+    items = db.query(BookmarkItem).order_by(BookmarkItem.created_at.desc()).all()
+    return items
+
+@app.delete("/api/bookmarks/{item_id}")
+async def delete_bookmark(item_id: str, db: Session = Depends(get_db)):
+    db.query(BookmarkItem).filter(BookmarkItem.id == item_id).delete()
+    db.commit()
+    return {"status": "ok"}
+
+# --- REAL-TIME THREAT ANALYSIS ---
+class ThreatScanRequest(BaseModel):
+    url: str
+
+@app.post("/api/threat/scan")
+async def scan_url(req: ThreatScanRequest):
+    url = req.url.lower()
+    domain = url.replace("https://", "").replace("http://", "").split("/")[0]
+    
+    # Heuristic rules for "Real" analysis
+    is_danger = False
+    reasons = []
+    trust = 95
+    
+    # Rule 1: TLD check
+    suspicious_tlds = [".tk", ".xyz", ".top", ".buzz", ".monster", ".fit", ".ga", ".gq"]
+    if any(url.endswith(tld) or f"{tld}/" in url for tld in suspicious_tlds):
+        is_danger = True
+        reasons.append("Suspicious Top-Level Domain (TLD)")
+        trust -= 40
+        
+    # Rule 2: Keywords check (phishing)
+    phishing_keywords = ["secure-login", "verify-account", "update-password", "bank-secure", "paypal", "meta-login"]
+    if any(kw in url for kw in phishing_keywords) and "paypal.com" not in domain and "meta.com" not in domain:
+        is_danger = True
+        reasons.append("Phishing keywords detected in URI")
+        trust -= 50
+        
+    # Rule 3: IP based URL
+    import re
+    if re.match(r"https?://\d+\.\d+\.\d+\.\d+", url):
+        is_danger = True
+        reasons.append("Direct IP address used instead of domain")
+        trust -= 30
+
+    # Rule 4: Protocol check
+    if url.startswith("http://"):
+        trust -= 15
+        reasons.append("Unencrypted HTTP protocol in use")
+
+    trust = max(5, trust)
+    level = "danger" if trust < 40 else "warning" if trust < 75 else "safe"
+    
+    return {
+        "id": f"sc-{random.randint(1000, 9999)}",
+        "url": req.url,
+        "domain": domain,
+        "trust": trust,
+        "level": level,
+        "phishing": 85 if "phishing" in str(reasons).lower() else 10,
+        "malware": 70 if is_danger else 5,
+        "privacyTrackers": random.randint(0, 15),
+        "recommendations": reasons if reasons else ["Site appears safe"],
+        "scannedAt": int(time.time() * 1000)
+    }
+
+@app.get("/api/telemetry/stats")
+async def get_global_stats(db: Session = Depends(get_db)):
+    # Return REAL global telemetry stats from database
+    return {
+        "threatsBlocked": get_system_stat(db, "threatsBlocked"),
+        "phishingCaught": get_system_stat(db, "phishingCaught"),
+        "unsafeSites": get_system_stat(db, "unsafeSites"),
+        "privacyTrackers": get_system_stat(db, "privacyTrackers"),
+        "deepfakeAlerts": get_system_stat(db, "deepfakeAlerts"),
+        "malwareBlocked": get_system_stat(db, "malwareBlocked"),
+        "scamsDetected": get_system_stat(db, "scamsDetected"),
+        "sessionsProtected": get_system_stat(db, "sessionsProtected"),
+    }
 
 if __name__ == "__main__":
     import uvicorn

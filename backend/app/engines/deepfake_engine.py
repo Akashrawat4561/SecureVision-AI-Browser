@@ -92,33 +92,33 @@ def _check_dependencies():
     try:
         import torch as _t
         torch, HAS_TORCH = _t, True
-        print(f"[Engine v5.0] ✓ PyTorch {torch.__version__}")
+        print(f"[Engine v5.0] [OK] PyTorch {torch.__version__}")
     except (ImportError, Exception) as e:
-        print(f"[Engine v5.0] ✗ PyTorch unavailable: {e}")
+        print(f"[Engine v5.0] [X] PyTorch unavailable: {e}")
 
     if HAS_TORCH:
         try:
             import timm as _tm
             timm, HAS_TIMM = _tm, True
-            print(f"[Engine v5.0] ✓ timm {timm.__version__} (supporting heuristics only)")
+            print(f"[Engine v5.0] [OK] timm {timm.__version__} (supporting heuristics only)")
         except (ImportError, Exception):
-            print("[Engine v5.0] ✗ timm (optional heuristics unavailable — OK)")
+            print("[Engine v5.0] [X] timm (optional heuristics unavailable — OK)")
 
         try:
             import open_clip as _oc
             clip_mod, HAS_CLIP = _oc, True
-            print("[Engine v5.0] ✓ OpenCLIP — PRIMARY VALIDATED SIGNAL")
+            print("[Engine v5.0] [OK] OpenCLIP — PRIMARY VALIDATED SIGNAL")
         except (ImportError, Exception):
-            print("[Engine v5.0] ✗ open_clip — primary signal degraded")
+            print("[Engine v5.0] [X] open_clip — primary signal degraded")
 
 
     try:
         import mediapipe as _mp
         mp = _mp
         HAS_MEDIAPIPE = hasattr(mp, "solutions")
-        print("[Engine v4.0] ✓ MediaPipe face detection")
+        print("[Engine v4.0] [OK] MediaPipe face detection")
     except ImportError:
-        print("[Engine v4.0] ✗ MediaPipe — using centre-crop fallback")
+        print("[Engine v4.0] [X] MediaPipe — using centre-crop fallback")
 
 
 _check_dependencies()
@@ -339,7 +339,7 @@ class CLIPRealismChecker:
                 self._fake_feats = self.model.encode_text(ft)
                 self._real_feats /= self._real_feats.norm(dim=-1, keepdim=True)
                 self._fake_feats /= self._fake_feats.norm(dim=-1, keepdim=True)
-            print("[CLIP] ✓ ViT-B/32 (openai) — PRIMARY SIGNAL ACTIVE")
+            print("[CLIP] [OK] ViT-B/32 (openai) — PRIMARY SIGNAL ACTIVE")
             return True
         except Exception as e:
             print(f"[CLIP] Load failed: {e}")
@@ -399,7 +399,7 @@ class EfficientNetHeuristic:
             self.device = "cuda" if torch.cuda.is_available() else "cpu"
             self.model = timm.create_model(self.MODEL_NAME, pretrained=True, num_classes=0)
             self.model.eval().to(self.device)
-            print(f"[EffNet] ✓ {self.MODEL_NAME} (HEURISTIC ONLY — not deepfake-trained)")
+            print(f"[EffNet] [OK] {self.MODEL_NAME} (HEURISTIC ONLY — not deepfake-trained)")
             return True
         except Exception as e:
             print(f"[EffNet] Unavailable: {e}")
@@ -450,7 +450,7 @@ class ViTHeuristic:
             self.device = "cuda" if torch.cuda.is_available() else "cpu"
             self.model = timm.create_model(self.MODEL_NAME, pretrained=True, num_classes=0)
             self.model.eval().to(self.device)
-            print(f"[ViT] ✓ {self.MODEL_NAME} (HEURISTIC ONLY — not deepfake-trained)")
+            print(f"[ViT] [OK] {self.MODEL_NAME} (HEURISTIC ONLY — not deepfake-trained)")
             return True
         except Exception as e:
             print(f"[ViT] Unavailable: {e}")
