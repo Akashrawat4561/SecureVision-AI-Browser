@@ -1,118 +1,105 @@
 # SecureVision AI: The First All-in-One AI Defense Grid 🛡️
 
-SecureVision AI is a high-fidelity, startup-level cybersecurity platform designed to protect modern business infrastructure. It provides real-time defense against next-generation threats including deepfakes, sophisticated network anomalies, and social engineering attempts.
+![SecureVision Banner](file:///C:/Users/GC/.gemini/antigravity/brain/a3b28743-e588-4b56-abb9-43db49bc48db/securevision_banner_1778858534916.png)
+
+> **Next-Generation Cybersecurity Platform** for the AI era. Detect deepfakes, monitor network anomalies, and deploy interactive decoys—all from a single, high-fidelity command center.
 
 ---
 
-## 🚀 Core Features
+## 🌟 Overview
 
-*   🔍 **Deepfake Scanner:** Forensic analysis of images and videos using multimodal EfficientNet + LSTM models to detect AI-generated artifacts with 94.2% accuracy.
-*   📊 **Network Monitor:** Live packet sniffing (Scapy) and machine learning (Isolation Forest) to identify unusual traffic spikes and failed login attempts.
-*   🍯 **Honeypot Grid:** Interactive Paramiko-based SSH decoys with realistic file systems and command logging to trap and analyze attacker behavior.
-*   🗺️ **Global Threat Map:** Real-time geospatial visualization of incoming attack clusters across your infrastructure.
-*   💻 **SecureVision Terminal:** High-performance WebSocket data stream for live system logs and threat intelligence.
-*   🔐 **Enterprise Security:** Adaptive Bcrypt password hashing, token-based authentication, and granular rate-limiting (Slowapi) on all sensitive endpoints.
+SecureVision AI is a sophisticated cybersecurity platform designed to protect modern infrastructure against advanced threats. It combines forensic AI, behavioral analysis, and active deception to create a comprehensive defense posture.
+
+[**Explore the Vision (ABOUT.md)**](./ABOUT.md)
 
 ---
 
-## 📂 Project Architecture
+## 🚀 Key Features
 
-```
-18/                                   ← Project root
-├── backend/                          # FastAPI / Python 3.10+
-│   ├── main.py                       # Root entry point
-│   ├── requirements.txt              # Production-grade dependencies
-│   ├── Dockerfile                    # Containerization layer
-│   └── app/                          # Core backend logic
-│       ├── main.py                   # FastAPI app instance + all routes
-│       ├── database.py               # SQLAlchemy ORM (PostgreSQL/SQLite)
-│       ├── api/                      # Route handlers
-│       ├── engines/                  # AI Detection Engines
-│       │   ├── deepfake_engine.py    # Temporal + Spatial Forensic Models
-│       │   ├── ml_engine.py          # Network Behavior Analysis
-│       │   ├── honeypot.py           # Interactive SSH/HTTP Decoys
-│       │   └── ingestion.py          # Live Scapy packet interceptors
-│       ├── models/                   # DB Schema & ML model artifacts
-│       ├── data/                     # Local datasets & training telemetry
-│       ├── utils/                    # Cryptography & Logging utilities
-│       └── logs/                     # Structured application/threat logs
-│
-└── frontend/                         # React 18 / Vite / TailwindCSS
-    ├── src/
-    │   ├── App.jsx                   # Component routing
-    │   ├── main.jsx                  # React entry point
-    │   ├── components/               # Atomic UI components & Charts
-    │   ├── context/                  # AuthState & WebSocket providers
-    │   ├── layouts/                  # Sidebar & Navigation structures
-    │   └── pages/                    # Domain-specific dashboards
-    │       ├── Landing.jsx           # Enterprise identity hero
-    │       ├── Dashboard.jsx         # Command & Control center
-    │       ├── Deepfake.jsx          # Visual forensics suite
-    │       ├── Anomaly.jsx           # Network behavior monitor
-    │       ├── Honeypot.jsx          # Deceptive intelligence grid
-    │       ├── ThreatMap.jsx         # Global vector visualization
-    │       ├── Architecture.jsx      # System topology view
-    │       └── Settings.jsx          # Configuration & Management
-```
+| Feature | Description | Tech |
+| :--- | :--- | :--- |
+| 🔍 **Deepfake Scanner** | Frame-by-frame forensic analysis for AI-generated media. | EfficientNet + LSTM |
+| 📊 **Network Monitor** | Real-time packet analysis and anomaly detection. | Scapy + Isolation Forest |
+| 🍯 **Honeypot Grid** | Interactive SSH/HTTP decoys to trap and study attackers. | Paramiko + Python |
+| 🗺️ **Threat Map** | Global geospatial visualization of attack clusters. | React-Simple-Maps |
+| 💻 **Live Terminal** | Real-time system logs and threat intelligence stream. | WebSockets |
+| 🔐 **Enterprise Auth** | Secure access with JWT and adaptive rate limiting. | FastAPI + Bcrypt |
 
 ---
 
-## 🛠️ Quick Start (Development)
+## 🏗️ Architecture
 
-### 1. Prerequisites
-- Python 3.10+, Node.js 18+
-- Active Python virtual environment (`.venv/`)
+SecureVision is built with a modular architecture, ensuring scalability and ease of deployment.
 
-### 2. Backend Setup
 ```bash
-cd backend
-pip install -r requirements.txt
-python main.py
+├── backend/                # FastAPI Core & ML Engines
+│   ├── app/
+│   │   ├── api/            # Route Handlers
+│   │   ├── engines/        # AI & Detection Engines
+│   │   └── models/         # Database Schemas
+├── frontend/               # React 18 & Vite Dashboard
+│   ├── src/
+│   │   ├── components/     # UI Design System
+│   │   └── pages/          # Domain Dashboards
+└── nginx/                  # Production Reverse Proxy
 ```
-*The FastAPI server starts at: **http://localhost:8000***
-
-### 3. Frontend Setup
-```bash
-cd frontend
-npm install
-npm run dev
-```
-*The Vite dashboard starts at: **http://localhost:5173***
 
 ---
 
-## 🐳 Running with Docker
-Deploy the full stack including Database and Nginx proxy with a single command:
+## 🛠️ Installation & Setup
 
+### Prerequisites
+- **Python 3.10+**
+- **Node.js 18+**
+- **Docker** (Optional, for containerized deployment)
+
+### Local Development
+
+1. **Clone & Environment**
+   ```bash
+   git clone https://github.com/Akashrawat4561/SecureVision-AI-Browser.git
+   cd SecureVision-AI-Browser
+   cp .env.example .env
+   ```
+
+2. **Backend Setup**
+   ```bash
+   cd backend
+   python -m venv .venv
+   source .venv/bin/activate  # or .venv\Scripts\activate on Windows
+   pip install -r requirements.txt
+   python main.py
+   ```
+
+3. **Frontend Setup**
+   ```bash
+   cd frontend
+   npm install
+   npm run dev
+   ```
+
+### Production (Docker)
 ```bash
 docker-compose up --build
 ```
 
 ---
 
-## 🛡️ Security & Performance
-- **Database:** SQLAlchemy ORM with support for SQLite (dev) or PostgreSQL (prod).
-- **Cryptography:** Salted Bcrypt hashing for password security.
-- **Validation:** Pydantic strict-type checking for all API boundaries.
-- **Protection:** Memory-backed rate limiting to mitigate DoS and brute-force attempts.
-- **Feedback:** Real-time updates delivered via asynchronous WebSocket listeners.
+## 🛡️ Security Posture
+
+- **Validated Boundaries:** Pydantic models for all API requests/responses.
+- **Rate Limiting:** Protects sensitive endpoints from brute-force and DDoS.
+- **Encrypted Persistence:** Salted Bcrypt hashing for all credentials.
+- **Real-time Telemetry:** Asynchronous WebSocket updates for immediate incident response.
 
 ---
 
-## 🔮 Roadmap / Future Strategy
-- **Kafka Integration:** Distributed ingestion for enterprise-scale logs.
-- **Active Defense:** Automatic firewall blacklisting based on high-confidence honeypot signals.
-- **Advanced AI:** Implementation of Vision Transformers (ViT) for sub-pixel deepfake forensics.
+## 🔮 Roadmap
+
+- [ ] **Vision Transformers:** Upgrading deepfake forensics to ViT models.
+- [ ] **Kafka Stream:** Enterprise-grade log ingestion.
+- [ ] **Automated Remediation:** AI-driven firewall rule generation.
 
 ---
 
-**Produced by SecureVision AI Systems. Ready for Pilot Deployment.**
-
-| Feature | Description |
-| :--- | :--- |
-| 🛡️ **Honeypot Grid** | Live attacker logging and decoy playground |
-| 🎯 **Predictive Sim** | GPT-2 powered phishing payload generation & detection testing |
-| 🗺️ **Threat Map** | Live global threat visualization |
-| 💻 **Live Terminal** | Real-time logs via WebSocket terminal widget |
-| 🔐 **JWT Auth** | Register / login with SHA-256 password hashing |
-| 🌐 **Intel Sharing** | Cross-node threat intelligence broadcasting |
+Developed with ❤️ by **SecureVision AI Systems**.

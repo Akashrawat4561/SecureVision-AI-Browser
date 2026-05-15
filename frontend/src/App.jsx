@@ -10,6 +10,8 @@ import ResponseCenter from './pages/ResponseCenter'
 import Architecture from './pages/Architecture'
 import Settings from './pages/Settings'
 import Honeypot from './pages/Honeypot'
+import About from './pages/About'
+
 
 import Landing from './pages/Landing'
 import AuthPage from './pages/AuthPage'
@@ -34,6 +36,8 @@ function App() {
                     <Route path="response" element={<ResponseCenter />} />
                     <Route path="architecture" element={<Architecture />} />
                     <Route path="settings" element={<Settings />} />
+                    <Route path="about" element={<About />} />
+
                 </Route>
             </Route>
         </Routes>

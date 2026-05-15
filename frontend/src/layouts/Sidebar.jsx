@@ -18,6 +18,7 @@ const navItems = [
         { label: 'Response', path: '/response', icon: BellRing, badge: '3', badgeColor: 'brand-red' },
         { label: 'System Map', path: '/architecture', icon: Network },
         { label: 'Settings', path: '/settings', icon: Settings },
+        { label: 'About', path: '/about', icon: Shield },
     ]}
 ];
 
