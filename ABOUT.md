@@ -1,47 +1,53 @@
 # About SecureVision AI 🛡️
 
 ## The Vision
-SecureVision AI was born from the necessity to bridge the gap between traditional network security and the rapidly evolving landscape of AI-driven threats. As deepfakes, automated social engineering, and sophisticated anomaly patterns become the norm, a new class of defense is required.
+In an era where AI-generated content can bypass traditional security filters, **SecureVision AI** was conceived as a multi-layered defense grid. Our goal is to provide organizations with the same high-end tools used by cybersecurity researchers, but packaged in an accessible, real-time platform.
 
-Our mission is to provide an **All-in-One AI Defense Grid** that is not only powerful but also intuitive and visually transparent. We believe that security intelligence should be accessible and actionable in real-time.
+## Why SecureVision?
 
-## Core Pillars
+### 1. The Deepfake Challenge
+Deepfakes are no longer just a research curiosity; they are actively used in business email compromise (BEC) and social engineering. SecureVision's **Deepfake Engine** doesn't just look for "glitches"; it analyzes the underlying biometric and temporal signals that AI models struggle to replicate perfectly.
 
-### 1. Visual Forensics (Deepfake Detection)
-We utilize a multimodal approach combining **Spatial** and **Temporal** analysis. Our engine leverages:
-- **EfficientNet-B4** for high-precision frame-by-frame artifact detection.
-- **LSTM (Long Short-Term Memory)** networks to analyze temporal inconsistencies that are common in AI-generated videos but absent in authentic media.
-- **94.2% Accuracy** on benchmark datasets (DFDC, FaceForensics++).
+### 2. Beyond Static Signatures
+Traditional antiviruses and firewalls rely on "signatures" of known threats. SecureVision's **Anomaly Engine** uses unsupervised machine learning (Isolation Forests) to identify "unknown unknowns"—traffic patterns that have never been seen before but exhibit the mathematical characteristics of an attack.
 
-### 2. Adaptive Network Intelligence
-Rather than relying solely on static signatures, SecureVision employs **Unsupervised Machine Learning**:
-- **Isolation Forests:** To detect outliers in packet flow and connection metadata.
-- **Real-time Scapy Ingestion:** Low-level packet sniffing that provides a raw view of the network health.
-- **Geospatial Mapping:** Converting IP metadata into visual threat clusters to identify geographic attack patterns.
-
-### 3. Deceptive Defense (Honeypots)
-We believe in "Active Defense". By deploying **Interactive Decoys**, we gain intelligence on attacker TTPs (Tactics, Techniques, and Procedures):
-- **SSH Decoys:** Realistic shells that log every command, script upload, and breakout attempt.
-- **Telemetry Feedback:** Signals from honeypots are used to automatically adjust firewall rules and risk scores across the grid.
-
-## Technology Stack
-
-### Backend
-- **Framework:** FastAPI (Python 3.10+)
-- **Database:** SQLAlchemy ORM (PostgreSQL/SQLite)
-- **ML/AI:** PyTorch, TensorFlow, Scikit-learn
-- **Networking:** Scapy, Paramiko (Honeypots)
-- **Security:** Bcrypt, JWT, Slowapi (Rate Limiting)
-
-### Frontend
-- **Library:** React 18
-- **Build Tool:** Vite
-- **Styling:** TailwindCSS + Vanilla CSS (Custom Design System)
-- **Animations:** Framer Motion
-- **Visualization:** Recharts, React-Simple-Maps
-
-## The Team
-SecureVision AI is developed by a team of dedicated security researchers and engineers focused on the intersection of Machine Learning and Cybersecurity.
+### 3. Active Deception (Honeypots)
+Most security is reactive. SecureVision is proactive. By deploying **Honeypots**, we force attackers to reveal their tools and intentions before they ever touch your actual data. It's the difference between having a burglar alarm and having a decoy house that records the burglar's face and fingerprints.
 
 ---
-*SecureVision AI - Protecting the Future of Digital Trust.*
+
+## Technical Deep-Dive
+
+### Detection Methodologies
+- **Spatial Forensics:** Analyzing frame-by-frame color distributions and frequency artifacts typical of GANs (Generative Adversarial Networks).
+- **Temporal Forensics:** Using LSTM networks to track inconsistencies across video frames, such as unnatural eye-blinking or pulse-synchronization issues.
+- **Packet Fingerprinting:** Analyzing TCP/IP headers and flow timing to identify bot-like behavior.
+
+### High-Fidelity UI/UX
+We believe that **Security Intelligence is Visual**. Our dashboard uses:
+- **Framer Motion** for smooth, meaningful transitions that guide the user's eye to high-priority threats.
+- **Live WebSockets** to ensure that "Real-Time" actually means sub-second latency.
+- **Geospatial Mapping** to provide immediate context to network alerts.
+
+---
+
+## The Technology Stack
+
+### Backend Power
+- **FastAPI:** Chosen for its high performance and asynchronous capabilities, essential for handling live packet streams.
+- **SQLAlchemy:** Provides a flexible ORM layer that scales from local SQLite to enterprise PostgreSQL.
+- **Scapy:** The "Swiss Army Knife" of packet manipulation, used for our raw network ingestion.
+
+### Frontend Elegance
+- **React 18:** Leverages the latest concurrent rendering features for a lag-free experience even with complex charts.
+- **TailwindCSS:** Enables a highly customized "Cyberpunk-Premium" design system without the bloat of traditional CSS frameworks.
+
+---
+
+## Future Trajectory
+SecureVision is continuously evolving. Our research team is currently working on:
+- **LLM-Based Log Analysis:** Using specialized Large Language Models to summarize complex attack logs into human-readable incident reports.
+- **Zero-Trust Integration:** Extending the browser-based dashboard to manage identity and access across distributed teams.
+
+---
+*Protecting the Future of Digital Trust.*
