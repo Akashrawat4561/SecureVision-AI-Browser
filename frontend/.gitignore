@@ -1,16 +1,53 @@
-# Frontend-specific .gitignore
-# (Root .gitignore already covers most of these)
-
+# Dependencies
 node_modules/
+
+# Build outputs
 dist/
 dist-ssr/
-*.local
-*.tsbuildinfo
+build/
 .vite/
+coverage/
+
+# Environment files
 .env
 .env.*
 !.env.example
+
+# Logs
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE files
+.vscode/
+.idea/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.python-version
+venv/
+.venv/
+
+# Database
+*.db
+*.sqlite3
+
+# Electron
+out/
+release/
+
+# TypeScript
+*.tsbuildinfo
+
+# Temporary files
+*.tmp
+*.temp
+.cache/
